@@ -5,11 +5,18 @@ Write scenario files which quickly allow you to populate Mongo / Mongoose model 
 **WARNING: This specification is experimental**
 
 
+Installation
+------------
+Use [NPM](https://www.npmjs.org) to install:
+
+	npm install --save-dev mongoose-scenario
+
+
 Basic usage
 -----------
 Scenario can be used a variety of ways:
 
-In the below scenarios `{...}` is used to denote a hash object of data - see the [examples](#Examples) section for more detail.
+In the below scenarios `{...}` is used to denote a hash object of data - see the [examples](#examples) section for more detail.
 
 ```javascript
 var mongoose = require('mongoose');
@@ -155,3 +162,7 @@ scenario({
 	]
 ]);
 ```
+
+Model specifications and documents can be in any order (i.e. forward or backward-refs are allowed). Scenario will process all records it has and keep pointers to refered records it has not seen yet.
+
+Scenario will process any dangling references at the end of each call to its main function so you can call `scenario()` as many times as needed from as many internal stacks as needed and it should do-the-right-thing(tm).
