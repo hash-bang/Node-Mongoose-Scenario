@@ -1,0 +1,29 @@
+{
+  "name": "mongoose-scenario",
+  "version": "0.1.0",
+  "description": "Write scenario files which quickly allow you to populate Mongo / Mongoose model contents",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hash-bang/Node-Mongoose-Scenario"
+  },
+  "keywords": [
+    "mongoose",
+    "mongo",
+    "scenario",
+    "population",
+    "database",
+    "setup"
+  ],
+  "author": "Matt Carter <m@ttcarter.com>",
+  "license": "MIT",
+  "dependencies": {
+    "lodash": "~2.4.1"
+  },
+  "devDependencies": {
+    "mongoose": "~3.8.13"
+  }
+}
