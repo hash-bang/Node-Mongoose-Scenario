@@ -16,7 +16,7 @@ Basic usage
 -----------
 Scenario can be used a variety of ways:
 
-In the below scenarios `{...}` is used to denote a hash object of data - see the [examples](#examples) section for more detail.
+In the below examples `{...}` is used to denote a hash object of data - see the [examples](#examples) section for more detail.
 
 ```javascript
 var mongoose = require('mongoose');
@@ -25,7 +25,7 @@ var scenario = require('mongoose-scenario')({
 });
 
 
-// Populate the 'widgets' model with the single provided object
+// Populate the 'widgets' model with a single object (you can call this multiple times to populate multiple objects)
 scenario('widgets', {...});
 
 // Populate the widgets model with an array of objects
@@ -37,6 +37,27 @@ scenario({
 	users: [ {...} ]
 });
 ```
+
+
+Options
+-------
+Options are specified when including the module via `require()`:
+
+```javascript
+var scenario = require('mongoose-scenario')({
+	/* Options */
+});
+```
+
+
+| Option                              | Type           | Default        | Description                                                            |
+|-------------------------------------|----------------|----------------|------------------------------------------------------------------------|
+| connection                          | _object_       | _none_         | The Mongoose connection object to use                                  |
+| nuke                                | _array_        | _none_         | Array of models to clear out (i.e. remove all records) before starting |
+| autoLink                            | _bool_         | `true`         | Whether to process all linkages after each run. Use `scenario()` with no arguments to manually do this when ready |
+| success                             | _function_     | _none_         | Callback to trigger on completion. The callback has one argument which is a hash of all models with an int value indicating the number of documents inserted |
+| fail                                | _function_     | _internalFunc_ | Callback to trigger on complettion when dangling references are still present. Callback is passed the same arguments as `success` but with the number of dangling references as the count of each hash value |
+| finally                             | _function_     | _none_         | Callback to trigger on completion if `success` OR `fail` were called first. Callback is passed the same arguments as `success`.
 
 
 Examples
