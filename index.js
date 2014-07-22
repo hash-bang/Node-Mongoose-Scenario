@@ -15,9 +15,12 @@ var settings = {
 	linkInline: true, // Link as we go where possible rather than linking everything at the end FIXME: Unsupported
 
 	called: 0, // How many times scenario has been called (if zero `nuke` gets fired)
+
 	knownFK: {},
-	dangling: {}, // #model => #wants => @ids
-	refs: {}, // #id => $id
+	refs: {},
+	defer: {}, // #wants => @functions
+	nextId: 0,
+	omitFields: ['_model', '_sid', '_ref'] // Fields to omit from creation process
 };
 
 var scenario = function(model, obj) {
@@ -59,7 +62,9 @@ var scenarioArray = function(model, arr) {
 	if (!settings.knownFK[model]) {
 		settings.knownFK[model] = [];
 		_.forEach(settings.connection.base.models[model].schema.paths, function(path, id) {
-			if (path.instance && path.instance == 'ObjectID')
+			if (id == 'id' || id == '_id') {
+				// Pass
+			} else if (path.instance && path.instance == 'ObjectID')
 				settings.knownFK[model].push(id);
 			// Array of ObjectIDs
 			/*
@@ -69,38 +74,76 @@ var scenarioArray = function(model, arr) {
 		});
 	}
 	// }}}
-	_.forEach(arr, function(item) {
-		var ref = null;
-		var dangling = {};
-		if (item._ref) { // Has its own ref
-			ref = item._ref;
-			delete item._ref;
-		}
-		_.forEach(settings.knownFK[model], function(fk) {
-			if (item[fk]) {
-				dangling[fk] = item[fk];
-				delete item[fk];
-			}
-		});
-		settings.connection.base.models[model].create(item, function(err, newItem) {
-			if (err) {
-				settings.failCreate(model, err);
-			} else {
-				for (var d in dangling) {
-					if (!settings.dangling[model])
-						settings.dangling[model] = {};
-					if (!settings.dangling[model][dangling[d]])
-						settings.dangling[model][dangling[d]] = [];
-					settings.dangling[model][dangling[d]].push(newItem._id);
-				}
 
-				if (ref) // Store the ref in the lookup table
-					settings.refs[ref] = newItem._id.toString();
-			}
-			settings.finally(settings);
-			scenarioLink();
-		});
+	_.forEach(arr, function(item) {
+		item._sid = 'ID-' + settings.nextId++;
+		item._model = model;
+		scenarioCreator(item);
 	});
+};
+
+var scenarioCreator = function(item) {
+	console.log('Attempt create', item);
+	var canCreate = true;
+
+	for (var fkIndex in settings.knownFK[item._model]) {
+		var fk = settings.knownFK[item._model][fkIndex];
+		var ref = item[fk];
+		if (settings.refs[ref]) { // We know of this ref
+			console.log(' * Ref', ref, 'is known as', settings.refs[ref]);
+			item[fk] = settings.refs[ref];
+		} else { // Dont know this ref yet
+			console.log(' * Defer due to', ref, 'missing');
+			if (!settings.defer[ref])
+				settings.defer[ref] = {};
+			settings.defer[ref][item._sid] = item;
+			canCreate = false;
+		}
+	}
+
+	if (canCreate) {
+		settings.connection.base.models[item._model].create(_.omit(item, settings.omitFields), function(err, newItem) {
+			console.log(' * Created as', newItem._id, 'with ref', ref);
+			if (err) {
+				settings.failCreate(item._model, err);
+			} else if (item._ref) { // This unit has a reference
+				console.log(' * Has reference', item._ref);
+				settings.refs[item._ref] = newItem._id;
+				scenarioRelink(item._ref, newItem._id);
+			}
+			
+			for (var deferOn in settings.defer) {
+				if (settings.defer[deferOn][item._sid]) {
+					delete settings.defer[deferOn][item._sid];
+					console.log(' * Deleted branch', deferOn,'/', item._sid, 'from defer queue');
+					if (_.isEmpty(settings.defer[deferOn])) {
+						console.log(' * Deleted last item from defer queue for', deferOn);
+						delete settings.defer[deferOn];
+					}
+				}
+			}
+			scenarioFinalize();
+		});
+	}
+};
+
+var scenarioRelink = function(ref, realId) {
+	console.log('Relink', ref, 'as', realId);
+	if (settings.defer[ref]) {
+		console.log(' * Found ID', ref, 'as', realId);
+		_.forEach(settings.defer[ref], function(childItem) {
+			scenarioCreator(childItem);
+		});
+	}
+};
+
+var scenarioFinalize = function() {
+	if (_.isEmpty(settings.defer)) {
+		settings.success();
+	} else {
+		settings.fail(settings.defer);
+	}
+	settings.finally(settings.defer);
 };
 
 /**
