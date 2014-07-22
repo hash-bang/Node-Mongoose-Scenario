@@ -12,7 +12,7 @@ var settings = {
 		console.warn("Error creating item in model", model, err);
 	},
 	finally: function(models) {},
-	linkInline: true, // Link as we go where possible rather than linking everything at the end FIXME: Unsupported
+	debug: function(txt) {},
 
 	called: 0, // How many times scenario has been called (if zero `nuke` gets fired)
 
@@ -57,7 +57,7 @@ var scenario = function(model, obj) {
 * @param array arr The array of data to digest
 */
 var scenarioArray = function(model, arr) {
-	console.log('Load', model, '/#', arr.length);
+	settings.debug('Load', model, '/#', arr.length);
 	// Setup settings.knownFK[model] {{{
 	if (!settings.knownFK[model]) {
 		settings.knownFK[model] = [];
@@ -83,17 +83,17 @@ var scenarioArray = function(model, arr) {
 };
 
 var scenarioCreator = function(item) {
-	console.log('Attempt create', item);
+	settings.debug('Attempt create', item);
 	var canCreate = true;
 
 	for (var fkIndex in settings.knownFK[item._model]) {
 		var fk = settings.knownFK[item._model][fkIndex];
 		var ref = item[fk];
 		if (settings.refs[ref]) { // We know of this ref
-			console.log(' * Ref', ref, 'is known as', settings.refs[ref]);
+			settings.debug(' * Ref', ref, 'is known as', settings.refs[ref]);
 			item[fk] = settings.refs[ref];
 		} else { // Dont know this ref yet
-			console.log(' * Defer due to', ref, 'missing');
+			settings.debug(' * Defer due to', ref, 'missing');
 			if (!settings.defer[ref])
 				settings.defer[ref] = {};
 			settings.defer[ref][item._sid] = item;
@@ -103,11 +103,11 @@ var scenarioCreator = function(item) {
 
 	if (canCreate) {
 		settings.connection.base.models[item._model].create(_.omit(item, settings.omitFields), function(err, newItem) {
-			console.log(' * Created as', newItem._id, 'with ref', ref);
+			settings.debug(' * Created as', newItem._id, 'with ref', ref);
 			if (err) {
 				settings.failCreate(item._model, err);
 			} else if (item._ref) { // This unit has a reference
-				console.log(' * Has reference', item._ref);
+				settings.debug(' * Has reference', item._ref);
 				settings.refs[item._ref] = newItem._id;
 				scenarioRelink(item._ref, newItem._id);
 			}
@@ -115,9 +115,9 @@ var scenarioCreator = function(item) {
 			for (var deferOn in settings.defer) {
 				if (settings.defer[deferOn][item._sid]) {
 					delete settings.defer[deferOn][item._sid];
-					console.log(' * Deleted branch', deferOn,'/', item._sid, 'from defer queue');
+					settings.debug(' * Deleted branch', deferOn,'/', item._sid, 'from defer queue');
 					if (_.isEmpty(settings.defer[deferOn])) {
-						console.log(' * Deleted last item from defer queue for', deferOn);
+						settings.debug(' * Deleted last item from defer queue for', deferOn);
 						delete settings.defer[deferOn];
 					}
 				}
@@ -128,9 +128,9 @@ var scenarioCreator = function(item) {
 };
 
 var scenarioRelink = function(ref, realId) {
-	console.log('Relink', ref, 'as', realId);
+	settings.debug('Relink', ref, 'as', realId);
 	if (settings.defer[ref]) {
-		console.log(' * Found ID', ref, 'as', realId);
+		settings.debug(' * Found ID', ref, 'as', realId);
 		_.forEach(settings.defer[ref], function(childItem) {
 			scenarioCreator(childItem);
 		});
@@ -144,22 +144,6 @@ var scenarioFinalize = function() {
 		settings.fail(settings.defer);
 	}
 	settings.finally(settings.defer);
-};
-
-/**
-* Process all dangling pointers
-*/
-var scenarioLink = function() {
-	for (var model in settings.dangling) {
-		for (var d in settings.dangling[model]) {
-			if (settings.refs[d]) { // Can we fix this danling reference yet?
-				console.log('Can fix dangling:', d);
-				_.forEach(settings.dangling[model][d], function(ref) {
-					console.log('FIX REF', d, 'AS', ref);
-				});
-			}
-		}
-	}
 };
 
 module.exports = function(options) {
