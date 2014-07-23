@@ -8,8 +8,8 @@ var userSchema = new mongoose.Schema({
 	id: mongoose.Schema.ObjectId,
 	name: String,
 	role: {type: String, enum: ['user', 'admin'], default: 'user'},
-	favourite: {type: mongoose.Schema.ObjectId}
-	// items: [{type: mongoose.Schema.ObjectId}]
+	favourite: {type: mongoose.Schema.ObjectId},
+	items: [{type: mongoose.Schema.ObjectId}]
 });
 var user = mongoose.model('users', userSchema);
 

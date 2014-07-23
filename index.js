@@ -2,6 +2,11 @@ var _ = require('lodash');
 
 var util = require('util'); // FIXME: DEBUG
 
+// Constants {{{
+	var FK_OBJECTID = 1; // 1:1 objectID mapping
+	var FK_OBJECTID_ARRAY = 2; // Array of objectIDs
+// }}}
+
 var settings = {
 	connection: null,
 	nuke: [],
@@ -58,22 +63,7 @@ var scenario = function(model, obj) {
 */
 var scenarioArray = function(model, arr) {
 	settings.debug('Load', model, '/#', arr.length);
-	// Setup settings.knownFK[model] {{{
-	if (!settings.knownFK[model]) {
-		settings.knownFK[model] = [];
-		_.forEach(settings.connection.base.models[model].schema.paths, function(path, id) {
-			if (id == 'id' || id == '_id') {
-				// Pass
-			} else if (path.instance && path.instance == 'ObjectID')
-				settings.knownFK[model].push(id);
-			// Array of ObjectIDs
-			/*
-			if (path.caster && path.caster.instance && path.caster.instance == 'ObjectID')
-				settings.knownFK[model].push(id);
-			*/
-		});
-	}
-	// }}}
+	scenarioFKs(model); // Setup settings.knownFK[model]
 
 	_.forEach(arr, function(item) {
 		item._sid = 'ID-' + settings.nextId++;
@@ -82,35 +72,81 @@ var scenarioArray = function(model, arr) {
 	});
 };
 
+/**
+* Pre-cache all foreign key items in a model
+* @param string model The model to process
+*/
+var scenarioFKs = function(model) {
+	if (!settings.knownFK[model]) {
+		settings.knownFK[model] = {};
+
+		_.forEach(settings.connection.base.models[model].schema.paths, function(path, id) {
+			if (id == 'id' || id == '_id') {
+				// Pass
+			} else if (path.instance && path.instance == 'ObjectID') {
+				settings.knownFK[model][id] = FK_OBJECTID;
+			} else if (path.caster && path.caster.instance && path.caster.instance == 'ObjectID') { // Array of ObjectIDs
+				settings.knownFK[model][id] = FK_OBJECTID_ARRAY;
+			}
+		});
+	}
+};
+
 var scenarioCreator = function(item) {
 	settings.debug('Attempt create', item);
 	var canCreate = true;
 
-	for (var fkIndex in settings.knownFK[item._model]) {
-		var fk = settings.knownFK[item._model][fkIndex];
+	for (var fk in settings.knownFK[item._model]) {
+		var refType = settings.knownFK[item._model][fk];
 		var ref = item[fk];
-		if (settings.refs[ref]) { // We know of this ref
-			settings.debug(' * Ref', ref, 'is known as', settings.refs[ref]);
-			item[fk] = settings.refs[ref];
-		} else { // Dont know this ref yet
-			settings.debug(' * Defer due to', ref, 'missing');
-			if (!settings.defer[ref])
-				settings.defer[ref] = {};
-			settings.defer[ref][item._sid] = item;
-			canCreate = false;
+		if (ref === undefined) // Its undefined anyway - skip (occurs when a FK is unset on create)
+			continue;
+
+		switch (refType) {
+			case FK_OBJECTID:
+				if (settings.refs[ref]) { // We know of this ref and its a simple 1:1
+					settings.debug(' * Ref', ref, 'is known as', settings.refs[ref]);
+					item[fk] = settings.refs[ref];
+				} else {
+					settings.debug(' * Defer due to', ref, 'missing');
+					scenarioDefer(ref, item);
+					canCreate = false;
+				}
+				break;
+			case FK_OBJECTID_ARRAY:
+				var mappedArray = [];
+				var missing = '';
+				for (var i in item[fk]) {
+					if (settings.refs[item[fk][i]]) { // We have this array item
+						mappedArray.push(settings.refs[item[fk][i]]);
+					} else { // Missing item
+						missing = item[fk][i];
+						break;
+					}
+				}
+				if (!missing) { // We have all items
+					item[fk] = mappedArray;
+					console.log(' * FK array', fk, 'has all members mappable', item);
+				} else {
+					settings.debug(' * Defer due to member of ObjectID array', missing, 'missing');
+					scenarioDefer(missing, item);
+					canCreate = false;
+				}
+				break;
 		}
 	}
 
 	if (canCreate) {
 		settings.connection.base.models[item._model].create(_.omit(item, settings.omitFields), function(err, newItem) {
-			settings.debug(' * Created as', newItem._id, 'with ref', ref);
 			if (err) {
-				settings.failCreate(item._model, err);
+				return settings.failCreate(item._model, err);
 			} else if (item._ref) { // This unit has a reference
 				settings.debug(' * Has reference', item._ref);
 				settings.refs[item._ref] = newItem._id;
 				scenarioRelink(item._ref, newItem._id);
 			}
+
+			settings.debug(' * Created as', newItem._id, 'with ref', ref);
 			
 			for (var deferOn in settings.defer) {
 				if (settings.defer[deferOn][item._sid]) {
@@ -127,6 +163,12 @@ var scenarioCreator = function(item) {
 	}
 };
 
+var scenarioHasAllMembers = function(arr) {
+	var out = [];
+	arr = out;
+	return true;
+};
+
 var scenarioRelink = function(ref, realId) {
 	settings.debug('Relink', ref, 'as', realId);
 	if (settings.defer[ref]) {
@@ -135,6 +177,12 @@ var scenarioRelink = function(ref, realId) {
 			scenarioCreator(childItem);
 		});
 	}
+};
+
+var scenarioDefer = function(ref, item) {
+	if (!settings.defer[ref])
+		settings.defer[ref] = {};
+	settings.defer[ref][item._sid] = item;
 };
 
 var scenarioFinalize = function() {
