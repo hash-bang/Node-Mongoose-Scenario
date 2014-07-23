@@ -54,10 +54,11 @@ var scenario = require('mongoose-scenario')({
 |-------------------------------------|----------------|----------------|------------------------------------------------------------------------|
 | connection                          | _object_       | _none_         | The Mongoose connection object to use                                  |
 | nuke                                | _array_        | _none_         | Array of models to clear out (i.e. remove all records) before starting |
-| autoLink                            | _bool_         | `true`         | Whether to process all linkages after each run. Use `scenario()` with no arguments to manually do this when ready |
-| success                             | _function_     | _none_         | Callback to trigger on completion. The callback has one argument which is a hash of all models with an int value indicating the number of documents inserted |
-| fail                                | _function_     | _internalFunc_ | Callback to trigger on complettion when dangling references are still present. Callback is passed the same arguments as `success` but with the number of dangling references as the count of each hash value |
-| finally                             | _function_     | _none_         | Callback to trigger on completion if `success` OR `fail` were called first. Callback is passed the same arguments as `success`.
+| debug                               | _function(txt)_ | _none_        | Function used by Scenario to output diagnostic information. Map to `console.log` for debug information |
+| success                             | _function()_     | _none_         | Callback to trigger on completion. The callback has one argument which is a hash of all models with an int value indicating the number of documents inserted |
+| fail                                | _function(dangling)_ | _internalFunc_ | Callback to trigger on complettion when dangling references are still present. Callback is passed the same arguments as `success` but with the number of dangling references as the count of each hash value |
+| failCreate                          | _function_(model, err) | _none_         | Callback when Mongo returns an error during the `create()` call |
+| finally                             | _function(dangling)_ | _none_         | Callback to trigger on completion if `success` OR `fail` were called first. Callback is passed the same arguments as `success`.
 
 
 Examples
@@ -192,5 +193,4 @@ Scenario will process any dangling references at the end of each call to its mai
 TODO
 ====
 * Nested structures (e.g. `foo: { bar: { baz: [ ids... ] } }`) can only be addressed by their dotted path during creation (e.g. `foo.bar.baz`).
-* Arrays of IDs are not yet supported
 * Feature to use `_id` as `_ref`
