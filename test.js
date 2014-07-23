@@ -53,23 +53,21 @@ scenario('widgets', {
 
 // Test: Simple scenario with 1:M mapping {{{
 scenario('users', {
-	name: 'Wendy User',
+	name: 'Phil User',
 	role: 'user',
 	items: ['widget-quz']
 });
 
 scenario('widgets', {
-	_ref: 'widget-quz',
-	name: 'Widget quz',
-	content: 'This is the quz widget'
+	_ref: 'widget-quuz',
+	name: 'Widget quuz',
+	content: 'This is the quuz widget'
 });
 
 // FIXME: Add assert tests here
 // }}}
 
-
 // Test: Complex scenario {{{
-/*
 scenario({
 	users: [
 		{
@@ -86,20 +84,19 @@ scenario({
 	widgets: [
 		{
 			_ref: 'widget-foo',
-			name: 'Widget foo',
+			name: 'Widget Foo',
 			content: 'This is the foo widget'
 		},
 		{
 			_ref: 'widget-bar',
-			name: 'Widget bar',
+			name: 'Widget Bar',
 			content: 'This is the bar widget'
 		},
 		{
 			_ref: 'widget-baz',
-			name: 'Widget foo',
+			name: 'Widget Baz',
 			content: 'This is the baz widget'
 		}
 	]
 });
-*/
 // }}}
