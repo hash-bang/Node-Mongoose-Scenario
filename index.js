@@ -1,7 +1,5 @@
 var _ = require('lodash');
 
-var util = require('util'); // FIXME: DEBUG
-
 // Constants {{{
 	var FK_OBJECTID = 1; // 1:1 objectID mapping
 	var FK_OBJECTID_ARRAY = 2; // Array of objectIDs
