@@ -193,3 +193,4 @@ TODO
 ====
 * Nested structures (e.g. `foo: { bar: { baz: [ ids... ] } }`) can only be addressed by their dotted path during creation (e.g. `foo.bar.baz`).
 * Arrays of IDs are not yet supported
+* Feature to use `_id` as `_ref`
