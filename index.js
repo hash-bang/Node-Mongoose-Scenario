@@ -201,6 +201,9 @@ var scenarioUnDefer = function(item) {
 };
 
 var scenarioFinalize = function() {
+	if (!settings.createdTotal || !_.isEmpty(settings.defer)) // Havn't created anything yet or there are still items pending
+		return;
+
 	if (_.isEmpty(settings.defer)) {
 		settings.success(settings.created);
 	} else {
