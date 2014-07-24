@@ -48,9 +48,9 @@ var scenario = function(model, obj) {
 		return scenarioArray(model, [obj]);
 
 	if (_.isArray(model)) // scenario(dataArray) - Not allowed
-		return console.error('Invalid scenario invoke style - scenario(array) is not supported. Did you mean scenario(modelName, array)?');
+		throw 'Invalid scenario invoke style - scenario(array) is not supported. Did you mean scenario(modelName, array)?';
 
-	console.error('Invalid scenario invoke style - scenario(', typeof model, ',', typeof obj, ')');
+	throw 'Invalid scenario invoke style - scenario(' + typeof model + ',' + typeof obj + ')';
 };
 
 /**
@@ -123,7 +123,7 @@ var scenarioCreator = function(item) {
 				}
 				if (!missing) { // We have all items
 					item[fk] = mappedArray;
-					console.log(' * FK array', fk, 'has all members mappable', item);
+					settings.debug(' * FK array', fk, 'has all members mappable', item);
 				} else {
 					settings.debug(' * Defer due to member of ObjectID array', missing, 'missing');
 					scenarioDefer(missing, item);
