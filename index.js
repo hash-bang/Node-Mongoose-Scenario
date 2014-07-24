@@ -8,7 +8,6 @@ var _ = require('lodash');
 var settings = {
 	connection: null,
 	nuke: [],
-	autoLink: true,
 	success: function(models) {},
 	fail: function(models) {},
 	failCreate: function(model, err) {

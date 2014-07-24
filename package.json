@@ -1,7 +1,7 @@
 {
   "name": "mongoose-scenario",
   "version": "0.1.0",
-  "description": "Write scenario files which quickly allow you to populate Mongo / Mongoose model contents",
+  "description": "Write scenario files which quickly allow you to populate Mongo / Mongoose contents",
   "main": "index.js",
   "scripts": {
     "test": "node test.js"
