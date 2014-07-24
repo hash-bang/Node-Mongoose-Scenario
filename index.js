@@ -17,6 +17,8 @@ var settings = {
 	debug: function(txt) {},
 
 	called: 0, // How many times scenario has been called (if zero `nuke` gets fired)
+	created: {}, // Tracker for record creation
+	createdTotal: 0,
 
 	knownFK: {},
 	refs: {},
@@ -144,6 +146,11 @@ var scenarioCreator = function(item) {
 			}
 
 			settings.debug(' * Created as', newItem._id, 'with ref', ref);
+			settings.createdTotal++;
+			if (!settings.created[item._model]) {
+				settings.created[item._model] = 1;
+			} else
+				settings.created[item._model]++;
 			
 			for (var deferOn in settings.defer) {
 				if (settings.defer[deferOn][item._sid]) {
@@ -184,11 +191,14 @@ var scenarioDefer = function(ref, item) {
 
 var scenarioFinalize = function() {
 	if (_.isEmpty(settings.defer)) {
-		settings.success();
+		settings.success(settings.created);
 	} else {
-		settings.fail(settings.defer);
+		settings.fail(settings.created, settings.defer);
 	}
-	settings.finally(settings.defer);
+	settings.finally(settings.created, settings.defer);
+
+	settings.created = {};
+	settings.createdTotal = 0;
 };
 
 module.exports = function(options) {
