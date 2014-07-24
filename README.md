@@ -12,6 +12,29 @@ Use [NPM](https://www.npmjs.org) to install:
 	npm install --save-dev mongoose-scenario
 
 
+Comparison with Mongo insert()
+------------------------------
+The normal method to insert records into Mongo is to force the `_id` value of documents to a referencable value:
+
+```javascript
+// Setup a user record that has three items which are widgets
+
+db.widgets.insert({_id: "widget-foo", name: "Widget Foo"});
+db.widgets.insert({_id: "widget-bar", name: "Widget Bar"});
+db.widgets.insert({_id: "widget-baz", name: "Widget Baz"});
+
+db.users.insert({
+	name: "John User",
+	items: ['widget-foo', 'widget-bar']
+});
+```
+
+However this method has the following downsides:
+
+1. Its entirely code based - all the inserts must be done in JavaScript rather than a more data friendly format such as JSON
+2. The `_id` fields cannot be auto-generated - this means you can't use the hash format Mongo would normally generate. Instead your fake record IDs would stand out compared to the hash values of 'real' documents.
+
+
 Basic usage
 -----------
 Scenario can be used a variety of ways:
