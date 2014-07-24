@@ -79,21 +79,25 @@ var scenarioFKs = function(model) {
 	if (!settings.knownFK[model]) {
 		settings.knownFK[model] = {};
 
-		_.forEach(settings.connection.base.models[model].schema.paths, function(path, id) {
-			if (id == 'id' || id == '_id') {
-				// Pass
-			} else if (path.instance && path.instance == 'ObjectID') {
-				settings.knownFK[model][id] = FK_OBJECTID;
-			} else if (path.caster && path.caster.instance && path.caster.instance == 'ObjectID') { // Array of ObjectIDs
-				settings.knownFK[model][id] = FK_OBJECTID_ARRAY;
-			}
-		});
+		if (!settings.connection.base.models[model]) {
+			throw 'Model "' + model + '" not found in Mongoose schema. Did you forget to load it?';
+		} else
+			_.forEach(settings.connection.base.models[model].schema.paths, function(path, id) {
+				if (id == 'id' || id == '_id') {
+					// Pass
+				} else if (path.instance && path.instance == 'ObjectID') {
+					settings.knownFK[model][id] = FK_OBJECTID;
+				} else if (path.caster && path.caster.instance && path.caster.instance == 'ObjectID') { // Array of ObjectIDs
+					settings.knownFK[model][id] = FK_OBJECTID_ARRAY;
+				}
+			});
 	}
 };
 
 var scenarioCreator = function(item) {
 	settings.debug('Attempt create', item);
 	var canCreate = true;
+	var FKs = {}; // Map of resolved FKs if we are using canCreate
 
 	for (var fk in settings.knownFK[item._model]) {
 		var refType = settings.knownFK[item._model][fk];
@@ -105,9 +109,9 @@ var scenarioCreator = function(item) {
 			case FK_OBJECTID:
 				if (settings.refs[ref]) { // We know of this ref and its a simple 1:1
 					settings.debug(' * Ref', ref, 'is known as', settings.refs[ref]);
-					item[fk] = settings.refs[ref];
+					FKs[fk] = settings.refs[ref];
 				} else {
-					settings.debug(' * Defer due to', ref, 'missing');
+					settings.debug(' * Defer due to', fk, ref, 'missing');
 					scenarioDefer(ref, item);
 					canCreate = false;
 				}
@@ -124,8 +128,8 @@ var scenarioCreator = function(item) {
 					}
 				}
 				if (!missing) { // We have all items
-					item[fk] = mappedArray;
-					settings.debug(' * FK array', fk, 'has all members mappable', item);
+					FKs[fk] = mappedArray;
+					settings.debug(' * FK array', fk, 'has all members mappable');
 				} else {
 					settings.debug(' * Defer due to member of ObjectID array', missing, 'missing');
 					scenarioDefer(missing, item);
@@ -136,7 +140,11 @@ var scenarioCreator = function(item) {
 	}
 
 	if (canCreate) {
-		settings.connection.base.models[item._model].create(_.omit(item, settings.omitFields), function(err, newItem) {
+		_(item)
+			.merge(FKs)
+			.omit(settings.omitFields);
+		scenarioUnDefer(item);
+		settings.connection.base.models[item._model].create(item, function(err, newItem) {
 			if (err) {
 				return settings.failCreate(item._model, err);
 			} else if (item._ref) { // This unit has a reference
@@ -152,16 +160,6 @@ var scenarioCreator = function(item) {
 			} else
 				settings.created[item._model]++;
 			
-			for (var deferOn in settings.defer) {
-				if (settings.defer[deferOn][item._sid]) {
-					delete settings.defer[deferOn][item._sid];
-					settings.debug(' * Deleted branch', deferOn,'/', item._sid, 'from defer queue');
-					if (_.isEmpty(settings.defer[deferOn])) {
-						settings.debug(' * Deleted last item from defer queue for', deferOn);
-						delete settings.defer[deferOn];
-					}
-				}
-			}
 			scenarioFinalize();
 		});
 	}
@@ -187,6 +185,19 @@ var scenarioDefer = function(ref, item) {
 	if (!settings.defer[ref])
 		settings.defer[ref] = {};
 	settings.defer[ref][item._sid] = item;
+};
+
+var scenarioUnDefer = function(item) {
+	for (var deferOn in settings.defer) {
+		if (settings.defer[deferOn][item._sid]) {
+			delete settings.defer[deferOn][item._sid];
+			settings.debug(' * Deleted branch', deferOn,'/', item._sid, 'from defer queue');
+			if (_.isEmpty(settings.defer[deferOn])) {
+				settings.debug(' * Deleted last item from defer queue for', deferOn);
+				delete settings.defer[deferOn];
+			}
+		}
+	}
 };
 
 var scenarioFinalize = function() {
