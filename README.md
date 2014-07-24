@@ -216,4 +216,6 @@ Scenario will process any dangling references at the end of each call to its mai
 TODO
 ====
 * Nested structures (e.g. `foo: { bar: { baz: [ ids... ] } }`) can only be addressed by their dotted path during creation (e.g. `foo.bar.baz`).
+* `success()`, `fail()` and `finally()` don't fire only once and in a logical way - they fire whenever Scenario has nothing to do which doesnt make a lot of scense
+* Feature to use selectors e.g. `widget-foo-*` as multiple glob refs
 * Feature to use `_id` as `_ref`
