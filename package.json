@@ -18,7 +18,10 @@
     "database",
     "setup"
   ],
-  "author": "Matt Carter <m@ttcarter.com>",
+  "author": {
+    "name": "Matt Carter",
+    "email": "m@ttcarter.com"
+  },
   "license": "MIT",
   "dependencies": {
     "lodash": "~2.4.1"
