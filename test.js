@@ -34,17 +34,21 @@ var scenario = require("./index.js")({
 // }}}
 
 // Test: Simple scenario with 1:1 mapping {{{
-/*
-scenario('users', {
-	name: 'Wendy User',
-	role: 'user',
-	favourite: 'widget-quz'
-});
-
-scenario('widgets', {
-	_ref: 'widget-quz',
-	name: 'Widget quz',
-	content: 'This is the quz widget'
+scenario({
+	users: [
+		{
+			name: 'Wendy User',
+			role: 'user',
+			favourite: 'widget-quz'
+		},
+	],
+	widgets: [
+		{
+			_ref: 'widget-quz',
+			name: 'Widget quz',
+			content: 'This is the quz widget'
+		}
+	]
 });
 */
 
@@ -52,16 +56,21 @@ scenario('widgets', {
 // }}}
 
 // Test: Simple scenario with 1:M mapping {{{
-scenario('users', {
-	name: 'Phil User',
-	role: 'user',
-	items: ['widget-quz']
-});
-
-scenario('widgets', {
-	_ref: 'widget-quuz',
-	name: 'Widget quuz',
-	content: 'This is the quuz widget'
+scenario({
+	users: [
+		{
+			name: 'Phil User',
+			role: 'user',
+			items: ['widget-quz']
+		}
+	],
+	widgets: [
+		{
+			_ref: 'widget-quuz',
+			name: 'Widget quuz',
+			content: 'This is the quuz widget'
+		}
+	]
 });
 
 // FIXME: Add assert tests here

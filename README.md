@@ -2,8 +2,6 @@ Mongoose-Scenario
 =================
 Write scenario files which quickly allow you to populate Mongo / Mongoose model contents.
 
-**WARNING: This specification is experimental**
-
 
 Installation
 ------------
@@ -29,7 +27,7 @@ db.users.insert({
 });
 ```
 
-However this method has the following downsides:
+However this method has the following disadvantages:
 
 1. Its entirely code based - all the inserts must be done in JavaScript rather than a more data friendly format such as JSON
 2. The `_id` fields cannot be auto-generated - this means you can't use the hash format Mongo would normally generate. Instead your fake record IDs would stand out compared to the hash values of 'real' documents.
@@ -47,19 +45,40 @@ var scenario = require('mongoose-scenario')({
 	connection: db
 });
 
-
-// Populate the 'widgets' model with a single object (you can call this multiple times to populate multiple objects)
-scenario('widgets', {...});
-
-// Populate the widgets model with an array of objects
-scenario('widgets', [ {...}, {...} ]);
-
-// Populate multiple models with a hash of models (in this case 'widgets' and 'users' models)
 scenario({
-	widgets: [ {...} ],
-	users: [ {...} ]
-});
+	users: [
+		{
+			name: 'John User',
+			role: 'user',
+			widgets: ['widget.foo', 'widget.baz'] // These are looked up via the `_ref` property in the widgets collection
+		},
+		{
+			name: 'Joe Admin',
+			role: 'admin',
+			widgets: ['widget.bar']
+		},
+	],
+	widgets: [
+		{
+			_ref: 'widget.foo',
+			name: 'Widget foo',
+			content: 'This is the foo widget'
+		},
+		{
+			_ref: 'widget.bar',
+			name: 'Widget bar',
+			content: 'This is the bar widget'
+		},
+		{
+			_ref: 'widget.baz',
+			name: 'Widget baz',
+			content: 'This is the baz widget'
+		},
+	]
+]);
 ```
+
+In the above example a number of users documents are created each refering to an array of widgets. Scenario will create all these records - in the correct order - substituting the 'real' document IDs post creation.
 
 
 Options
@@ -70,6 +89,17 @@ Options are specified when including the module via `require()`:
 var scenario = require('mongoose-scenario')({
 	/* Options */
 });
+
+scenario({
+	collectionFoo: [],
+	collectionBar: []
+}, function(err, data) {
+	if (err) {
+		console.log('Failed to create scenario');
+	} else {
+		console.log('Scenario created', data);
+	}
+});
 ```
 
 
@@ -77,47 +107,10 @@ var scenario = require('mongoose-scenario')({
 |-------------------------------------|----------------|----------------|------------------------------------------------------------------------|
 | connection                          | _object_       | _none_         | The Mongoose connection object to use                                  |
 | nuke                                | _array_        | _none_         | Array of models to clear out (i.e. remove all records) before starting |
-| debug                               | _function(txt)_ | _none_        | Function used by Scenario to output diagnostic information. Map to `console.log` for debug information |
-| success                             | _function(created)_     | _none_         | Callback to trigger on completion. The callback has one argument which is a hash of all models with an int value indicating the number of documents inserted |
-| fail                                | _function(created, dangling)_ | _internalFunc_ | Callback to trigger on complettion when dangling references are still present. Callback is passed the same arguments as `success` but with the number of dangling references as the count of each hash value |
-| failCreate                          | _function_(model, err) | _none_         | Callback when Mongo returns an error during the `create()` call |
-| finally                             | _function(created, dangling)_ | _none_         | Callback to trigger on completion if `success` OR `fail` were called first. See combination of `success` and `fail` for callback details |
 
 
 Examples
 ========
-
-Single model population
------------------------
-Simply populate a widgets model with data:
-
-```javascript
-var mongoose = require('mongoose');
-var scenario = require('mongoose-scenario')({
-	connection: db
-});
-
-scenario('users', [
-	{
-		name: 'John User',
-		role: 'user'
-	},
-	{
-		name: 'Joe Admin',
-		role: 'admin'
-	}
-]);
-```
-
-Or populate the same thing from a JSON file:
-
-```javascript
-// Usual require stuff (see above). Omitted for brevity.
-var fs = require('fs');
-
-scenario(fs.readFileSync('./data/scenarioFoo.json'));
-```
-
 
 Populate multiple models
 ------------------------
@@ -151,7 +144,7 @@ scenario({
 			content: 'This is the bar widget'
 		},
 		{
-			name: 'Widget foo',
+			name: 'Widget baz',
 			content: 'This is the baz widget'
 		},
 	]
@@ -216,6 +209,5 @@ Scenario will process any dangling references at the end of each call to its mai
 TODO
 ====
 * Nested structures (e.g. `foo: { bar: { baz: [ ids... ] } }`) can only be addressed by their dotted path during creation (e.g. `foo.bar.baz`).
-* `success()`, `fail()` and `finally()` don't fire only once and in a logical way - they fire whenever Scenario has nothing to do which doesnt make a lot of scense
-* Feature to use selectors e.g. `widget-foo-*` as multiple glob refs
-* Feature to use `_id` as `_ref`
+* Setting to use selectors e.g. `widget-foo-*` as multiple glob refs
+* Setting to use `_id` as `_ref`
