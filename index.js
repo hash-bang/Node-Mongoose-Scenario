@@ -8,7 +8,7 @@ var async = require('async');
 
 var settings = {
 	connection: null,
-	nuke: [],
+	nuke: [], // Either a list of collections to nuke or 'true' to use the incomming scenario to calculate the collections
 
 	defer: null, // Outer 'Q' wrapper of a Scenario session
 	called: 0, // How many times scenario has been called (if zero `nuke` gets fired)
@@ -48,7 +48,7 @@ var scenario = function(model, options, callback) {
 	// Handle collection nuking {{{
 	if (settings.called++ == 0 && settings.nuke) {
 		var nukes = [];
-		_.forEach(settings.nuke, function(model) {
+		_.forEach(_.isArray(settings.nuke) ? settings.nuke : _.keys(model), function(model) {
 			nukes.push(function(next) {
 				settings.connection.base.models[model].find({}).remove(function(err) {
 					if (err) next(err);
