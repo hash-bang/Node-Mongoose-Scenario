@@ -187,7 +187,4 @@ var computeFKs = function(model) {
 	}
 };
 
-module.exports = function(options) {
-	settings = _.defaults(options, settings);
-	return scenario;
-};
+module.exports = scenario;
