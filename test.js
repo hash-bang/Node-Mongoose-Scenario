@@ -10,10 +10,10 @@ var userSchema = new mongoose.Schema({
 	id: mongoose.Schema.ObjectId,
 	name: String,
 	role: {type: String, enum: ['user', 'admin'], default: 'user'},
-	favourite: {type: mongoose.Schema.ObjectId},
-	items: [{type: mongoose.Schema.ObjectId}]
+	favourite: {type: mongoose.Schema.ObjectId, ref: 'widgets'},
+	items: [{type: mongoose.Schema.ObjectId, ref: 'widgets'}]
 });
-var user = mongoose.model('users', userSchema);
+var User = mongoose.model('users', userSchema);
 
 var widgetSchema = new mongoose.Schema({
 	id: mongoose.Schema.ObjectId,
@@ -21,7 +21,7 @@ var widgetSchema = new mongoose.Schema({
 	content: String,
 	status: {type: String, enum: ['active', 'deleted'], default: 'active'}
 });
-var widget = mongoose.model('widgets', widgetSchema);
+var Widget = mongoose.model('widgets', widgetSchema);
 // }}}
 
 // Scenario setup {{{
@@ -60,26 +60,32 @@ tape('Scenario with 1:1 + 1:M relationships - setup', function(assert) {
 	assert.plan(2);
 
 	assert.test('Check DB users', function(assert2) {
-		assert2.plan(6);
-		user.find().exec(function(err, data) {
-			if (err) return assert.fail(err);
-			assert2.pass('Got user data');
-			assert2.equal(data.length, 1, 'User row count');
-			assert2.equal(data[0].name, 'Wendy User');
-			assert2.equal(data[0].role, 'user');
-			assert2.equal(data[0].items, 1);
-			assert2.notEqual(data[0].favourite, null);
-		});
+		assert2.plan(7);
+		User
+			.find()
+			.populate('items')
+			.exec(function(err, data) {
+				if (err) return assert.fail(err);
+				assert2.pass('Got user data');
+				assert2.equal(data.length, 1, 'User row count');
+				assert2.equal(data[0].name, 'Wendy User');
+				assert2.equal(data[0].role, 'user');
+				assert2.equal(data[0].items.length, 1);
+				assert2.equal(data[0].items[0].name, 'Widget quz');
+				assert2.notEqual(data[0].favourite, null);
+			});
 	});
 
 	assert.test('Check DB widgets', function(assert2) {
 		assert2.plan(4);
-		widget.find().exec(function(err, data) {
-			if (err) return assert.fail(err);
-			assert2.pass('Got widget data');
-			assert2.equal(data.length, 1, 'Widget row count');
-			assert2.equal(data[0].name, 'Widget quz');
-			assert2.equal(data[0].content, 'This is the quz widget');
-		});
+		Widget
+			.find()
+			.exec(function(err, data) {
+				if (err) return assert.fail(err);
+				assert2.pass('Got widget data');
+				assert2.equal(data.length, 1, 'Widget row count');
+				assert2.equal(data[0].name, 'Widget quz');
+				assert2.equal(data[0].content, 'This is the quz widget');
+			});
 	});
 });
