@@ -70,7 +70,7 @@ var scenario = function(model, options, callback) {
 			if (err) return err;
 			scenario(model, options, callback);
 		});
-		return; // Stop processing here until nukes are done (then scenario() is reinvoked)
+		return scenario; // Stop processing here until nukes are done (then scenario() is reinvoked)
 	}
 	// }}}
 
@@ -93,12 +93,14 @@ var scenario = function(model, options, callback) {
 		});
 		async.auto(tasks, function(err) {
 			if (err) return callback(err);
-			return callback(null, settings.progress);
+			callback(null, settings.progress);
+			return scenario;
 		});
 	} else {
 		throw 'Invalid scenario invoke style - scenario(' + typeof model + ')';
 	}
 
+	return scenario;
 };
 
 /**
