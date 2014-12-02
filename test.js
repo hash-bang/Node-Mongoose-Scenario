@@ -1,8 +1,9 @@
-var assert = require("assert");
+var _ = require('lodash');
+var tape = require('tape');
 var mongoose = require('mongoose');
 
 // Mongoose setup {{{
-mongoose.connect('mongodb://localhost/node-mongoose-scenario');
+mongoose.connect('mongodb://localhost/mongoose-scenario');
 mongoose.connection.on('error', console.error.bind(console, 'DB connection error:'));
 
 var userSchema = new mongoose.Schema({
@@ -24,88 +25,61 @@ var widget = mongoose.model('widgets', widgetSchema);
 // }}}
 
 // Scenario setup {{{
-var scenario = require("./index.js")({
+var scenario = require("./index.js")({}, {
 	connection: mongoose.connection,
-	nuke: ['widgets', 'users'],
-	finally: function(out) {
-		console.log('DONE', require('util').inspect(require('lodash').omit(out, ['connection']), {depth: 5}));
-	}
+	nuke: true
 });
 // }}}
 
-// Test: Simple scenario with 1:1 mapping {{{
-scenario({
-	users: [
-		{
-			name: 'Wendy User',
-			role: 'user',
-			favourite: 'widget-quz'
-		},
-	],
-	widgets: [
-		{
-			_ref: 'widget-quz',
-			name: 'Widget quz',
-			content: 'This is the quz widget'
-		}
-	]
-});
-*/
+tape('Scenario with 1:1 + 1:M relationships - setup', function(assert) {
+	assert.plan(1);
 
-// FIXME: Add assert tests here
-// }}}
-
-// Test: Simple scenario with 1:M mapping {{{
-scenario({
-	users: [
-		{
-			name: 'Phil User',
-			role: 'user',
-			items: ['widget-quz']
-		}
-	],
-	widgets: [
-		{
-			_ref: 'widget-quuz',
-			name: 'Widget quuz',
-			content: 'This is the quuz widget'
-		}
-	]
+	scenario({
+		users: [
+			{
+				name: 'Wendy User',
+				role: 'user',
+				favourite: 'widget-quz',
+				items: ['widget-quz']
+			},
+		],
+		widgets: [
+			{
+				_ref: 'widget-quz',
+				name: 'Widget quz',
+				content: 'This is the quz widget'
+			}
+		]
+	}, function(err, data) {
+		if (err) return assert.fail(err);
+		assert.pass('Scenario setup');
+	});
 });
 
-// FIXME: Add assert tests here
-// }}}
+tape('Scenario with 1:1 + 1:M relationships - setup', function(assert) {
+	assert.plan(2);
 
-// Test: Complex scenario {{{
-scenario({
-	users: [
-		{
-			name: 'John User',
-			role: 'user',
-			items: ['widget-foo']
-		},
-		{
-			name: 'Joe Admin',
-			role: 'admin',
-			items: ['widget-foo', 'widget-baz']
-		}
-	],
-	widgets: [
-		{
-			_ref: 'widget-foo',
-			name: 'Widget Foo',
-			content: 'This is the foo widget'
-		},
-		{
-			_ref: 'widget-bar',
-			name: 'Widget Bar',
-			content: 'This is the bar widget'
-		},
-		{
-			_ref: 'widget-baz',
-			name: 'Widget Baz',
-			content: 'This is the baz widget'
-		}
-	]
+	assert.test('Check DB users', function(assert2) {
+		assert2.plan(6);
+		user.find().exec(function(err, data) {
+			if (err) return assert.fail(err);
+			assert2.pass('Got user data');
+			assert2.equal(data.length, 1, 'User row count');
+			assert2.equal(data[0].name, 'Wendy User');
+			assert2.equal(data[0].role, 'user');
+			assert2.equal(data[0].items, 1);
+			assert2.notEqual(data[0].favourite, null);
+		});
+	});
+
+	assert.test('Check DB widgets', function(assert2) {
+		assert2.plan(4);
+		widget.find().exec(function(err, data) {
+			if (err) return assert.fail(err);
+			assert2.pass('Got widget data');
+			assert2.equal(data.length, 1, 'Widget row count');
+			assert2.equal(data[0].name, 'Widget quz');
+			assert2.equal(data[0].content, 'This is the quz widget');
+		});
+	});
 });
-// }}}

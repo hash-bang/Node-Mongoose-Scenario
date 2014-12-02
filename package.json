@@ -28,6 +28,8 @@
     "async": "~0.9.0"
   },
   "devDependencies": {
-    "mongoose": "~3.8.13"
+    "mongoose": "~3.8.20",
+    "tape": "~3.0.3",
+    "lodash": "~2.4.1"
   }
 }
