@@ -41,6 +41,12 @@ var scenario = function(model, options, callback) {
 	} else if (options) { // Form: model(model, options)
 		_.merge(settings, options);
 	}
+	if (!callback)
+		callback = function() {};
+
+	// Sanity checks
+	if (!settings.connection)
+		throw new Error('Invalid connection to Mongoose');
 
 	// Rest all progress
 	settings.progress.created = {};
@@ -48,7 +54,8 @@ var scenario = function(model, options, callback) {
 	// Handle collection nuking {{{
 	if (settings.called++ == 0 && settings.nuke) {
 		var nukes = [];
-		_.forEach(_.isArray(settings.nuke) ? settings.nuke : _.keys(model), function(model) {
+
+		_.forEach(_.isArray(settings.nuke) ? settings.nuke : _.keys(settings.connection.base.models), function(model) {
 			nukes.push(function(next) {
 				if (!settings.connection.base.models[model])
 					return callback(new Error('Model "' + model + '" is present in the Scenario schema but no model can be found matching that name, did you forget to load it?'));
