@@ -86,7 +86,7 @@ Options
 Options are specified when including the module via `require()`:
 
 ```javascript
-var scenario = require('mongoose-scenario')({
+var scenario = require('mongoose-scenario')({}, { // NOTE: pass a blank scenario THEN the options
 	/* Options */
 });
 
