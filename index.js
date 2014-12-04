@@ -7,6 +7,7 @@ var async = require('async');
 // }}}
 
 var settings = {
+	reset: false, // Reset all known refs on each call - if this is false the previously created refs will be remembered and can be used again
 	connection: null,
 	nuke: [], // Either a list of collections to nuke or 'true' to use the incomming scenario to calculate the collections
 
@@ -50,6 +51,8 @@ var scenario = function(model, options, callback) {
 
 	// Rest all progress
 	settings.progress.created = {};
+	if (settings.reset)
+		settings.refs = {};
 
 	// Handle collection nuking {{{
 	if (settings.called++ == 0 && settings.nuke) {
@@ -91,6 +94,11 @@ var scenario = function(model, options, callback) {
 				tasks[row._ref ? 'ref-' + row._ref : 'anon-' + settings.idVal++] = dependents;
 			});
 		});
+
+		if (!settings.reset) // If we're carrying over previously created items make sure these get removed from the task list
+			_.forEach(settings.refs, function(value, refID) {
+				tasks['ref-' + refID] = function(next) {next()}; // Dummy function to resolve this reference immediately so it satisfies async.auto()
+			});
 
 		async.auto(tasks, function(err) {
 			if (err) return callback(err);
