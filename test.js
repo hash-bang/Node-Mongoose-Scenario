@@ -60,6 +60,11 @@ tape('Scenario with 1:1 + 1:M relationships - setup', function(assert) {
 				_ref: 'widget-quz',
 				name: 'Widget quz',
 				content: 'This is the quz widget'
+			},
+			{
+				_ref: 'widget-qux',
+				name: 'Widget qux',
+				content: 'This is the qux widget'
 			}
 		]
 	}, function(err, data) {
@@ -89,15 +94,18 @@ tape('Scenario with 1:1 + 1:M relationships - verify', function(assert) {
 	});
 
 	assert.test('Check DB widgets', function(assert2) {
-		assert2.plan(4);
+		assert2.plan(6);
 		Widget
 			.find()
+			.sort('name')
 			.exec(function(err, data) {
 				if (err) return assert.fail(err);
 				assert2.pass('Got widget data');
-				assert2.equal(data.length, 1, 'Widget row count');
-				assert2.equal(data[0].name, 'Widget quz');
-				assert2.equal(data[0].content, 'This is the quz widget');
+				assert2.equal(data.length, 2, 'Widget row count');
+				assert2.equal(data[0].name, 'Widget qux');
+				assert2.equal(data[0].content, 'This is the qux widget');
+				assert2.equal(data[1].name, 'Widget quz');
+				assert2.equal(data[1].content, 'This is the quz widget');
 			});
 	});
 });
@@ -111,6 +119,14 @@ tape('Scenario with 1:1 + 1:M deeply nested relationships - setup', function(ass
 		groups: [
 			{
 				name: 'Group Foobar',
+				preferences: {
+					defaults: {
+						items: [
+							'widget-quz',
+							'widget-qux',
+						]
+					}
+				}
 			},
 		]
 	}, function(err, data) {
@@ -120,7 +136,7 @@ tape('Scenario with 1:1 + 1:M deeply nested relationships - setup', function(ass
 });
 
 tape('Scenario with 1:1 + 1:M deeply nested relationships - verify', function(assert) {
-	assert.plan(3);
+	assert.plan(6);
 
 	Group
 		.find()
@@ -130,6 +146,11 @@ tape('Scenario with 1:1 + 1:M deeply nested relationships - verify', function(as
 			assert.pass('Got group data');
 			assert.equal(data.length, 1, 'Group row count');
 			assert.equal(data[0].name, 'Group Foobar', 'Group name');
+			assert.equal(data[0].preferences.defaults.items.length, 2, 'Deeply nested item count');
+
+			data[0].preferences.defaults.items = _.sortBy(data[0].preferences.defaults.items, 'name'); // Force sorting as Mongo can't do this AND populate at the same time
+			assert.equal(data[0].preferences.defaults.items[0].name, 'Widget qux', 'Deeply nested item[0] name');
+			assert.equal(data[0].preferences.defaults.items[1].name, 'Widget quz', 'Deeply nested item[1] name');
 		});
 });
 // }}}

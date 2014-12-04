@@ -84,6 +84,7 @@ var scenario = function(model, options, callback) {
 				computeFKs(collection);
 
 			_.forEach(rows, function(row) {
+				row = flatten(row);
 				var dependents = getDependents(collection, row);
 				var createFunc = function(next, a, b, c) {
 					createRow(collection, row, next);
@@ -136,6 +137,30 @@ function getDependents(collection, row) {
 	});
 
 	return dependents;
+};
+
+/**
+* Take a nested object and return a flattened hash in Mongoose path notation
+* e.g. {foo: {bar: 'baz'}} // Becomes {foo.bar: 'baz'}
+* @param object obj The object to flatten
+* @return object A flattened version of the object given
+*/
+function flatten(obj) {
+	var flattenWorker = function(row, namespace, result) {
+		return _.reduce(row, function(result, value, key) {
+			var newKey;
+			newKey = "" + namespace + (namespace ? '.' : '') + key;
+			if (_.isPlainObject(value)) {
+				if (_.size(value)) {
+					flattenWorker(value, newKey, result);
+				}
+			} else {
+				result[newKey] = value;
+			}
+			return result;
+		}, result);
+	};
+	return flattenWorker(obj, '', {});
 };
 
 /**

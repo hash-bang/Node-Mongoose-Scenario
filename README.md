@@ -37,8 +37,6 @@ Basic usage
 -----------
 Scenario can be used a variety of ways:
 
-In the below examples `{...}` is used to denote a hash object of data - see the [examples](#examples) section for more detail.
-
 ```javascript
 var mongoose = require('mongoose');
 var scenario = require('mongoose-scenario')({
@@ -206,8 +204,59 @@ Model specifications and documents can be in any order (i.e. forward or backward
 Scenario will process any dangling references at the end of each call to its main function so you can call `scenario()` as many times as needed from as many internal stacks as needed and it should do-the-right-thing(tm).
 
 
+Use within tests
+----------------
+Scenario can also be used to quickly setup database layouts for tests.
+
+Heres an example using the [Tape](https://github.com/substack/tape) test harness:
+
+```javascript
+
+// Setup our inital options
+var scenario = require("./index.js")({}, {
+	connection: mongoose.connection,
+	nuke: true
+});
+
+tape('User setup', function(assert) {
+	assert.plan(1);
+
+	scenario({
+		users: [
+			{
+				name: 'Wendy User',
+				role: 'user',
+				favourite: 'widget-quz',
+				items: ['widget-quz']
+			},
+		]
+	}, function(err, data) {
+		if (err) return assert.fail(err);
+		assert.pass('Scenario setup');
+	});
+});
+
+tape('User setup - verify', function(assert) {
+	assert.plan(4);
+
+	User
+		.find()
+		.exec(function(err, data) {
+			if (err) return assert.fail(err);
+			assert.pass('Got user data');
+			assert.equal(data.length, 1, 'User row count');
+			assert.equal(data[0].name, 'Wendy User');
+			assert.equal(data[0].role, 'user');
+		});
+
+});
+```
+
+Look at the [test.js](test.js) file for more detailed examples.
+
+
 TODO
 ====
-* Nested structures (e.g. `foo: { bar: { baz: [ ids... ] } }`) can only be addressed by their dotted path during creation (e.g. `foo.bar.baz`).
 * Setting to use selectors e.g. `widget-foo-*` as multiple glob refs
 * Setting to use `_id` as `_ref`
+* Auto populate data using increment functionality e.g. '{{firstname}} {{lastname}}' fetches some fake first and last names from somewhere
