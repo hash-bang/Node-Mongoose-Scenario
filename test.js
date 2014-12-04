@@ -22,6 +22,17 @@ var widgetSchema = new mongoose.Schema({
 	status: {type: String, enum: ['active', 'deleted'], default: 'active'}
 });
 var Widget = mongoose.model('widgets', widgetSchema);
+
+var groupSchema = new mongoose.Schema({
+	id: mongoose.Schema.ObjectId,
+	name: String,
+	preferences: {
+		defaults: {
+			items: [{type: mongoose.Schema.ObjectId, ref: 'widgets'}]
+		}
+	}
+});
+var Group = mongoose.model('groups', groupSchema);
 // }}}
 
 // Scenario setup {{{
@@ -31,6 +42,7 @@ var scenario = require("./index.js")({}, {
 });
 // }}}
 
+// Scenario with 1:1 + 1:M relationships {{{
 tape('Scenario with 1:1 + 1:M relationships - setup', function(assert) {
 	assert.plan(1);
 
@@ -56,7 +68,7 @@ tape('Scenario with 1:1 + 1:M relationships - setup', function(assert) {
 	});
 });
 
-tape('Scenario with 1:1 + 1:M relationships - setup', function(assert) {
+tape('Scenario with 1:1 + 1:M relationships - verify', function(assert) {
 	assert.plan(2);
 
 	assert.test('Check DB users', function(assert2) {
@@ -89,3 +101,35 @@ tape('Scenario with 1:1 + 1:M relationships - setup', function(assert) {
 			});
 	});
 });
+// }}}
+
+// Scenario with 1:1 + 1:M deeply nested relationships {{{
+tape('Scenario with 1:1 + 1:M deeply nested relationships - setup', function(assert) {
+	assert.plan(1);
+
+	scenario({
+		groups: [
+			{
+				name: 'Group Foobar',
+			},
+		]
+	}, function(err, data) {
+		if (err) return assert.fail(err);
+		assert.pass('Scenario setup');
+	});
+});
+
+tape('Scenario with 1:1 + 1:M deeply nested relationships - verify', function(assert) {
+	assert.plan(3);
+
+	Group
+		.find()
+		.populate('preferences.defaults.items')
+		.exec(function(err, data) {
+			if (err) return assert.fail(err);
+			assert.pass('Got group data');
+			assert.equal(data.length, 1, 'Group row count');
+			assert.equal(data[0].name, 'Group Foobar', 'Group name');
+		});
+});
+// }}}
