@@ -91,6 +91,7 @@ var scenario = function(model, options, callback) {
 				tasks[row._ref ? 'ref-' + row._ref : 'anon-' + settings.idVal++] = dependents;
 			});
 		});
+
 		async.auto(tasks, function(err) {
 			if (err) return callback(err);
 			callback(null, settings.progress);
@@ -111,17 +112,17 @@ var scenario = function(model, options, callback) {
 function getDependents(collection, row) {
 	var dependents = [];
 
-	_.forEach(settings.knownFK[collection], function(refType, ref) {
-		switch (refType) {
+	_.forEach(row, function(fieldValue, fieldID) {
+		switch (settings.knownFK[collection][fieldID]) {
 			case FK_OBJECTID: // 1:1 relationship
-				dependents.push('ref-' + row[ref]);
+				dependents.push('ref-' + fieldValue);
 				break;
 			case FK_OBJECTID_ARRAY: // 1:M array based relationship
-				var mappedArray = [];
-				var missing = '';
-				_.forEach(row[ref], function(rowValue) {
-					dependents.push('ref-' + rowValue);
+				_.forEach(fieldValue, function(fieldValueArr) {
+					dependents.push('ref-' + fieldValueArr);
 				});
+				break;
+			default: // Probably not a reference
 				break;
 		}
 	});
@@ -136,26 +137,28 @@ function getDependents(collection, row) {
 * @param function callback(err) Callback to chainable async function
 */
 function createRow(collection, row, callback) {
-	var createRow = row;
+	var createRow = {};
 
-	_.forEach(settings.knownFK[collection], function(refType, ref) {
-		switch (refType) {
+	_.forEach(row, function(fieldValue, fieldID) {
+		switch (settings.knownFK[collection][fieldID]) {
 			case FK_OBJECTID: // 1:1 relationship
-				if (!settings.refs[row[ref]])
-					return callback('Attempting to use reference ' + ref + ' before its been created!');
-				createRow[ref] = settings.refs[row[ref]];
+				if (!settings.refs[fieldValue])
+					return callback('Attempting to use reference "' + fieldValue + '" in field ' + collection + '.' + fieldID + ' before its been created!');
+				createRow[fieldID] = settings.refs[fieldValue];
 				break;
 			case FK_OBJECTID_ARRAY: // 1:M array based relationship
-				createRow[ref] = _.map(row[ref], function(rowValue) {
-					if (!settings.refs[rowValue])
-						return callback('Attempting to use reference ' + rowValue + ' in 1:M field ' + ref + ' before its been created!');
-					return settings.refs[rowValue];
+				createRow[fieldID] = _.map(fieldValue, function(fieldValueArr) { // Resolve each item in the array
+					if (!settings.refs[fieldValueArr])
+						return callback('Attempting to use reference "' + fieldValueArr + '" in 1:M field ' + fieldID + ' before its been created!');
+					return settings.refs[fieldValue];
 				});
 				break;
+			default: // Probably not a reference
+				createRow[fieldID] = fieldValue;
 		}
 	});
 
-	_.omit(createRow, settings.omitFields);
+	createRow = _.omit(createRow, settings.omitFields);
 
 	settings.connection.base.models[collection].create(createRow, function(err, newItem) {
 		if (err)
