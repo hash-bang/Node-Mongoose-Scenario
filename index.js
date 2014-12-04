@@ -158,7 +158,7 @@ function createRow(collection, row, callback) {
 				createRow[fieldID] = _.map(fieldValue, function(fieldValueArr) { // Resolve each item in the array
 					if (!settings.refs[fieldValueArr])
 						return callback('Attempting to use reference "' + fieldValueArr + '" in 1:M field ' + fieldID + ' before its been created!');
-					return settings.refs[fieldValue];
+					return settings.refs[fieldValueArr];
 				});
 				break;
 			default: // Probably not a reference
