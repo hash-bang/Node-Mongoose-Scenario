@@ -7,7 +7,7 @@ var async = require('async');
 // }}}
 
 var settings = {
-	reset: false, // Reset all known refs on each call - if this is false the previously created refs will be remembered and can be used again
+	reset: true, // Reset all known refs on each call - if this is false the previously created refs will be remembered and can be used again
 	connection: null,
 	nuke: [], // Either a list of collections to nuke or 'true' to use the incomming scenario to calculate the collections
 

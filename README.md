@@ -260,3 +260,4 @@ TODO
 * Setting to use selectors e.g. `widget-foo-*` as multiple glob refs
 * Setting to use `_id` as `_ref`
 * Auto populate data using increment functionality e.g. '{{firstname}} {{lastname}}' fetches some fake first and last names from somewhere
+* Cope with missing dependents (e.g. if record a has missing _ref but record B has it as a dependency)
