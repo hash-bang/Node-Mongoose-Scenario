@@ -11,7 +11,6 @@ var settings = {
 	connection: null,
 	nuke: [], // Either a list of collections to nuke or 'true' to use the incomming scenario to calculate the collections
 
-	defer: null, // Outer 'Q' wrapper of a Scenario session
 	called: 0, // How many times scenario has been called (if zero `nuke` gets fired)
 
 	progress: { // Output data array (passed to callback on finish)
@@ -23,10 +22,17 @@ var settings = {
 
 	knownFK: {}, // Cache of known foreign keys for a collection
 
-	idVal: 0, // Incrementing ID value for fields that do not have a '_ref'
+	idVal: 0, // Incrementing ID value for fields that do not have a '_ref' (or whatever keys.ref is)
 	exitTaskId: 0,
 
-	omitFields: ['_model', '_sid', '_ref'] // Fields to omit from creation process
+	// Define the keys mongoose-scenario uses to look up meta-data
+	// NOTE: Changing these will not also alter omitFields - which will need to be updated seperately if you wish to override these keys
+	keys: {
+		ref: '_ref', // What key to use when looking up the reference
+		after: '_after', // Define dependents
+	},
+
+	omitFields: ['_ref', '_after'] // Fields to omit from creation process
 };
 
 /**
@@ -92,7 +98,7 @@ var scenario = function(model, options, callback) {
 
 				dependents.push(createFunc);
 
-				tasks[row._ref ? 'ref-' + row._ref : 'anon-' + settings.idVal++] = dependents;
+				tasks[row[settings.keys.ref] ? 'ref-' + row[settings.keys.ref] : 'anon-' + settings.idVal++] = dependents;
 			});
 		});
 
@@ -135,6 +141,19 @@ function getDependents(collection, row) {
 				break;
 		}
 	});
+
+	var after = row[settings.keys.after];
+	if (after) { // Define custom dependencies (via '_after')
+		if (_.isString(after)) {
+			after = after.split(/\s*,\s*/);
+		} else if (_.isObject(after)) { // Not really supported behaviour but throw it in anyway
+			after = _.keys(after);
+		}
+
+		after.forEach(function(dep) {
+			dependents.push('ref-' + dep);
+		});
+	}
 
 	return dependents;
 };
@@ -198,8 +217,8 @@ function createRow(collection, row, callback) {
 			console.log("ERR", err, 'DURING', createRow);
 		if (err) return callback(err);
 
-		if (row._ref) { // This unit has its own reference - add it to the stack
-			settings.refs[row._ref] = newItem._id;
+		if (row[settings.keys.ref]) { // This unit has its own reference - add it to the stack
+			settings.refs[row[settings.keys.ref]] = newItem._id;
 		}
 
 		if (!settings.progress.created[collection])

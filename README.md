@@ -104,7 +104,10 @@ scenario({
 | Option                              | Type           | Default        | Description                                                            |
 |-------------------------------------|----------------|----------------|------------------------------------------------------------------------|
 | connection                          | _object_       | _none_         | The Mongoose connection object to use                                  |
+| keys                                | _object_       | See code       | The names of the fields Mongoose with reference (see Meta fields section) |
 | nuke                                | _array_        | _none_         | Array of models to clear out (i.e. remove all records) before starting |
+| omitFields                          | _array_        | See code       | Array of fields which should be purged from the row data before its passed to Mongoose |
+| reset                               | _boolean_      | true           | Whether Scenario should disguard references between runs. Set to false to keep previously created row references |
 
 
 Examples
@@ -253,6 +256,17 @@ tape('User setup - verify', function(assert) {
 ```
 
 Look at the [test.js](test.js) file for more detailed examples.
+
+
+Meta field refernce
+===================
+The following table describes the fields Scenario will example when processing data:
+
+| Field             | Type               | Description                                                            |
+|-------------------|--------------------|------------------------------------------------------------------------|
+| `_ref`            | _string_           | The reference used by other schema definitions (see examples)          |
+| `_after`          | _string_ / _array_ | Indicates that this item should only be created _after_ the referenced items. This is useful if you need rows created in a specific order |
+
 
 
 TODO
