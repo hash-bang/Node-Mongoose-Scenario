@@ -10,32 +10,9 @@ Use [NPM](https://www.npmjs.org) to install:
 	npm install --save-dev mongoose-scenario
 
 
-Comparison with Mongo insert()
-------------------------------
-The normal method to insert records into Mongo is to force the `_id` value of documents to a referencable value:
-
-```javascript
-// Setup a user record that has three items which are widgets
-
-db.widgets.insert({_id: "widget-foo", name: "Widget Foo"});
-db.widgets.insert({_id: "widget-bar", name: "Widget Bar"});
-db.widgets.insert({_id: "widget-baz", name: "Widget Baz"});
-
-db.users.insert({
-	name: "John User",
-	items: ['widget-foo', 'widget-bar']
-});
-```
-
-However this method has the following disadvantages:
-
-1. Its entirely code based - all the inserts must be done in JavaScript rather than a more data friendly format such as JSON
-2. The `_id` fields cannot be auto-generated - this means you can't use the hash format Mongo would normally generate. Instead your fake record IDs would stand out compared to the hash values of 'real' documents.
-
-
 Basic usage
 -----------
-Scenario can be used a variety of ways:
+Scenario can be used a variety of ways but the below is the most typical example.
 
 ```javascript
 var mongoose = require('mongoose');
@@ -76,7 +53,31 @@ scenario({
 ]);
 ```
 
-In the above example a number of users documents are created each refering to an array of widgets. Scenario will create all these records - in the correct order - substituting the 'real' document IDs post creation.
+In the above a number of users documents are created each refering to an array of widgets. Scenario will create all these records - in the correct order - substituting the 'real' document references as they are created.
+
+
+Comparison with Mongo insert()
+------------------------------
+The 'usual' method to insert records into Mongo is to set the `_id` value of documents to a referencable value in code:
+
+```javascript
+// Setup a user record that has three items which are widgets
+
+db.widgets.insert({_id: "widget-foo", name: "Widget Foo"});
+db.widgets.insert({_id: "widget-bar", name: "Widget Bar"});
+db.widgets.insert({_id: "widget-baz", name: "Widget Baz"});
+
+db.users.insert({
+	name: "John User",
+	items: ['widget-foo', 'widget-bar']
+});
+```
+
+However this method has the following disadvantages:
+
+1. Its entirely code based - all the inserts must be done in JavaScript rather than a more data friendly format such as JSON
+2. The `_id` fields cannot be auto-generated - this means you can't use the hash format Mongo would normally generate. Instead your fake record IDs would stand out compared to the hash values of 'real' documents.
+
 
 
 Options
