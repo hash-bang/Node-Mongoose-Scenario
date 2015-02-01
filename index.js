@@ -31,6 +31,8 @@ var settings = {
 		ref: '_ref', // What key to use when looking up the reference
 		after: '_after', // Define dependents
 	},
+	// Check whether all dependencies are met
+	checkDependencies : true,
 
 	omitFields: ['_ref', '_after'] // Fields to omit from creation process
 };
@@ -107,8 +109,31 @@ var scenario = function(model, options, callback) {
 				tasks['ref-' + refID] = function(next) {next()}; // Dummy function to resolve this reference immediately so it satisfies async.auto()
 			});
 
+		// Check whether all dependencies of async.auto can be resolved.
+		// For performance reasons can be disabled by setting .checkDependencies
+		// fields of setting to false.
+		if (settings.checkDependencies) {
+			var unresolved = [];
+			_.forIn(tasks, function(val, key) {
+				if (_.isArray(val)) {
+					_.forEach(val,function (dep) {
+						if (_.isString(dep) && !tasks[dep])
+							unresolved.push(dep);
+					});
+				}
+			});
+			if (unresolved.length) {
+				callback({
+					error : 'Missing Keys',
+					keys : unresolved
+				});
+				return scenario;
+			}
+		}
+
 		async.auto(tasks, function(err) {
-			if (err) return callback(err);
+			if (err)
+				return callback(err);
 			callback(null, settings.progress);
 			return scenario;
 		});
