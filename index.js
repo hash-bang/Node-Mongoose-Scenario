@@ -153,6 +153,7 @@ function getDependents(collection, row) {
 	var dependents = [];
 
 	_.forEach(row, function(fieldValue, fieldID) {
+		if (row[fieldID] === undefined) return; // Found a FK but incomming row def has it as omitted - skip
 		switch (settings.knownFK[collection][fieldID]) {
 			case FK_OBJECTID: // 1:1 relationship
 				dependents.push('ref-' + fieldValue);
@@ -217,6 +218,7 @@ function createRow(collection, row, callback) {
 	var createRow = {};
 
 	_.forEach(row, function(fieldValue, fieldID) {
+		if (row[fieldID] === undefined) return; // Skip omitted FK refs
 		switch (settings.knownFK[collection][fieldID]) {
 			case FK_OBJECTID: // 1:1 relationship
 				if (!settings.refs[fieldValue])
