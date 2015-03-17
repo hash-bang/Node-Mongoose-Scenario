@@ -50,7 +50,7 @@ scenario({
 			content: 'This is the baz widget'
 		},
 	]
-]);
+});
 ```
 
 In the above a number of users documents are created each refering to an array of widgets. Scenario will create all these records - in the correct order - substituting the 'real' document references as they are created.
@@ -150,7 +150,7 @@ scenario({
 			content: 'This is the baz widget'
 		},
 	]
-]);
+});
 ```
 
 You can cross-link objects in the next section.
@@ -200,7 +200,7 @@ scenario({
 			content: 'This is the baz widget'
 		},
 	]
-]);
+});
 ```
 
 Model specifications and documents can be in any order (i.e. forward or backward-refs are allowed). Scenario will process all records it has and keep pointers to refered records it has not seen yet.
