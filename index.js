@@ -1,9 +1,9 @@
 var _ = require('lodash');
-var async = require('async');
+var async = require('async-chainable');
 
 // Constants {{{
-	var FK_OBJECTID = 1; // 1:1 objectID mapping
-	var FK_OBJECTID_ARRAY = 2; // Array of objectIDs
+var FK_OBJECTID = 1; // 1:1 objectID mapping
+var FK_OBJECTID_ARRAY = 2; // Array of objectIDs
 // }}}
 
 var settings = {
@@ -42,104 +42,88 @@ var settings = {
 * A scenario must be complete - i.e. have no danling references for it to suceed
 * @param object model The scenario to create - expected format is a hash of collection names each containing a collection of records (e.g. `{users: [{name: 'user1'}, {name: 'user2'}] }`)
 * @param object settings Optional Settings array to import
-* @param callback function(err, data) Callback fired when scenario finishes creating records
+* @param callback function(err, data) Optional callback fired when scenario finishes creating records
 */
 var scenario = function(model, options, callback) {
-	if (_.isFunction(options)) { // Form: (model, callback)
-		callback = options;
-	} else if (options) { // Form: model(model, options)
-		_.merge(settings, options);
-	}
-	if (!callback)
-		callback = function() {};
+	var asyncCreator = async(); // Task runner that actually creates all the Mongo records
 
-	// Sanity checks
-	if (!settings.connection)
-		throw new Error('Invalid connection to Mongoose');
-
-	// Rest all progress
-	settings.progress.created = {};
-	if (settings.reset)
-		settings.refs = {};
-
-	// Handle collection nuking {{{
-	if (settings.called++ == 0 && settings.nuke) {
-		var nukes = [];
-
-		_.forEach(_.isArray(settings.nuke) ? settings.nuke : _.keys(settings.connection.base.models), function(model) {
-			nukes.push(function(next) {
-				if (!settings.connection.base.models[model])
-					return callback(new Error('Model "' + model + '" is present in the Scenario schema but no model can be found matching that name, did you forget to load it?'));
-				settings.connection.base.models[model].find({}).remove(function(err) {
-					if (err) next(err);
-					settings.progress.nuked.push(model);
-					next();
-				});
-			});
-		});
-		async.parallel(nukes, function(err) {
-			if (err) return err;
-			scenario(model, options, callback);
-		});
-		return scenario; // Stop processing here until nukes are done (then scenario() is reinvoked)
-	}
-	// }}}
-
-	if (_.isObject(model)) { // scenario(modelsObject) - Hash of models
-		var tasks = {};
-		_.forEach(model, function(rows, collection) {
-			if (!settings.knownFK[collection]) // Not computed the FKs for thios collection before
-				computeFKs(collection);
-
-			_.forEach(rows, function(row) {
-				row = flatten(row);
-				var dependents = getDependents(collection, row);
-				var createFunc = function(next, a, b, c) {
-					createRow(collection, row, next);
-				};
-
-				dependents.push(createFunc);
-
-				tasks[row[settings.keys.ref] ? 'ref-' + row[settings.keys.ref] : 'anon-' + settings.idVal++] = dependents;
-			});
-		});
-
-		if (!settings.reset) // If we're carrying over previously created items make sure these get removed from the task list
-			_.forEach(settings.refs, function(value, refID) {
-				tasks['ref-' + refID] = function(next) {next()}; // Dummy function to resolve this reference immediately so it satisfies async.auto()
-			});
-
-		// Check whether all dependencies of async.auto can be resolved.
-		// For performance reasons can be disabled by setting .checkDependencies
-		// fields of setting to false.
-		if (settings.checkDependencies) {
-			var unresolved = [];
-			_.forIn(tasks, function(val, key) {
-				if (_.isArray(val)) {
-					_.forEach(val,function (dep) {
-						if (_.isString(dep) && !tasks[dep])
-							unresolved.push(dep);
+	async()
+		.then(function(next) { // Coherce args into scenario(<model>, [options], [callback]) {{{
+			if (!model) throw new Error('No arguments passed to scenario()');
+			if (_.isFunction(options)) { // Form: (model, callback)
+				callback = options;
+			} else if (options) { // Form: model(model, options)
+				_.merge(settings, options);
+			}
+			if (!callback) callback = function() {};
+			next();
+			
+		}) // }}}
+		.then(function(next) { // Sanity checks {{{
+			if (!settings.connection) throw new Error('Invalid connection to Mongoose');
+			if (!_.isObject(model)) throw new Error('Invalid scenario invoke style - scenario(' + typeof model + ')');
+			next();
+		}) // }}}
+		.then(function(next) { // Reset all state variables {{{
+			settings.progress.created = {};
+			if (settings.reset) settings.refs = {};
+			next();
+		}) /// }}}
+		.then(function(next) { // Optionally Nuke existing models {{{
+			if (!settings.nuke) return next();
+			async()
+				.set('models', _.isArray(settings.nuke) ? settings.nuke : _.keys(settings.connection.base.models))
+				.forEach('models', function(next, model) {
+					if (!settings.connection.base.models[model])
+						return callback('Model "' + model + '" is present in the Scenario schema but no model can be found matching that name, did you forget to load it?');
+					settings.connection.base.models[model].find({}).remove(function(err) {
+						if (err) next(err);
+						settings.progress.nuked.push(model);
+						next();
 					});
+				})
+				.end(next);
+		}) // }}}
+		.forEach(model, function(next, rows, collection) { // Compute FKs for each model {{{
+			if (settings.knownFK[collection]) return next(); // Already computed the FKs for this collection
+
+			settings.knownFK[collection] = {};
+
+			if (!settings.connection.base.models[collection]) throw new Error('Collection "' + collection + '" not found in Mongoose schema. Did you forget to load it?');
+
+			_.forEach(settings.connection.base.models[collection].schema.paths, function(path, id) {
+				if (id == 'id' || id == '_id') {
+					// Pass
+				} else if (path.instance && path.instance == 'ObjectID') {
+					settings.knownFK[collection][id] = FK_OBJECTID;
+				} else if (path.caster && path.caster.instance && path.caster.instance == 'ObjectID') { // Array of ObjectIDs
+					settings.knownFK[collection][id] = FK_OBJECTID_ARRAY;
 				}
 			});
-			if (unresolved.length) {
-				callback({
-					error : 'Missing Keys',
-					keys : unresolved
-				});
-				return scenario;
-			}
-		}
 
-		async.auto(tasks, function(err) {
-			if (err)
-				return callback(err);
-			callback(null, settings.progress);
-			return scenario;
-		});
-	} else {
-		throw 'Invalid scenario invoke style - scenario(' + typeof model + ')';
-	}
+			next();
+		}) // }}}
+		.forEach(model, function(next, rows, collection) { // Process the Scenario profile {{{
+			async()
+				.forEach(rows, function(next, row) { // Split all incomming items into defered tasks {{{
+					var rowFlattened = flatten(row);
+					var id = row[settings.keys.ref] ? 'ref-' + row[settings.keys.ref] : 'anon-' + settings.idVal++;
+					var dependents = getDependents(collection, rowFlattened);
+
+					asyncCreator.defer(dependents, id, function(next) {
+						createRow(collection, rowFlattened, next);
+					});
+
+					next();
+				}) // }}}
+				.end(next);
+		}) // }}}
+		.then(function(next) { // Run all tasks {{{
+			asyncCreator
+				.await()
+				.end(next);
+		}) // }}}
+		.end(callback);
 
 	return scenario;
 };
@@ -240,8 +224,6 @@ function createRow(collection, row, callback) {
 	createRow = _.omit(createRow, settings.omitFields);
 
 	settings.connection.base.models[collection].create(createRow, function(err, newItem) {
-		if (err)
-			console.log("ERR", err, 'DURING', createRow);
 		if (err) return callback(err);
 
 		if (row[settings.keys.ref]) { // This unit has its own reference - add it to the stack
@@ -261,23 +243,6 @@ function createRow(collection, row, callback) {
 * @param string model The model to process
 */
 var computeFKs = function(model) {
-	if (!settings.knownFK[model]) {
-		settings.knownFK[model] = {};
-
-		if (!settings.connection.base.models[model]) {
-			throw 'Model "' + model + '" not found in Mongoose schema. Did you forget to load it?';
-		} else {
-			_.forEach(settings.connection.base.models[model].schema.paths, function(path, id) {
-				if (id == 'id' || id == '_id') {
-					// Pass
-				} else if (path.instance && path.instance == 'ObjectID') {
-					settings.knownFK[model][id] = FK_OBJECTID;
-				} else if (path.caster && path.caster.instance && path.caster.instance == 'ObjectID') { // Array of ObjectIDs
-					settings.knownFK[model][id] = FK_OBJECTID_ARRAY;
-				}
-			});
-		}
-	}
 };
 
 module.exports = scenario;
