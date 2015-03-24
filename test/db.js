@@ -10,7 +10,8 @@ var userSchema = new mongoose.Schema({
 	name: String,
 	role: {type: String, enum: ['user', 'admin'], default: 'user'},
 	favourite: {type: mongoose.Schema.ObjectId, ref: 'widgets'},
-	items: [{type: mongoose.Schema.ObjectId, ref: 'widgets'}]
+	items: [{type: mongoose.Schema.ObjectId, ref: 'widgets'}],
+	testSet: {type: String},
 });
 var User = mongoose.model('users', userSchema);
 // }}}
@@ -20,7 +21,8 @@ var widgetSchema = new mongoose.Schema({
 	id: mongoose.Schema.ObjectId,
 	name: String,
 	content: String,
-	status: {type: String, enum: ['active', 'deleted'], default: 'active'}
+	status: {type: String, enum: ['active', 'deleted'], default: 'active'},
+	testSet: {type: String},
 });
 var Widget = mongoose.model('widgets', widgetSchema);
 // }}}
@@ -33,7 +35,8 @@ var groupSchema = new mongoose.Schema({
 		defaults: {
 			items: [{type: mongoose.Schema.ObjectId, ref: 'widgets'}]
 		}
-	}
+	},
+	testSet: {type: String},
 });
 var Group = mongoose.model('groups', groupSchema);
 // }}}
