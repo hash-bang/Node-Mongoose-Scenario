@@ -11,6 +11,12 @@ var userSchema = new mongoose.Schema({
 	role: {type: String, enum: ['user', 'admin'], default: 'user'},
 	favourite: {type: mongoose.Schema.ObjectId, ref: 'widgets'},
 	items: [{type: mongoose.Schema.ObjectId, ref: 'widgets'}],
+	mostPurchased: [
+		{
+			number: {type: Number, default: 0},
+			item: {type: mongoose.Schema.ObjectId, ref: 'widgets'},
+		}
+	],
 	testSet: {type: String},
 });
 var User = mongoose.model('users', userSchema);

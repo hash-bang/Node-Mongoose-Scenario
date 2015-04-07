@@ -4,6 +4,7 @@ var async = require('async-chainable');
 // Constants {{{
 var FK_OBJECTID = 1; // 1:1 objectID mapping
 var FK_OBJECTID_ARRAY = 2; // Array of objectIDs
+var FK_SUBDOC = 3; // Sub-document embed
 // }}}
 
 var settings = {
@@ -91,15 +92,8 @@ var scenario = function(model, options, callback) {
 
 			if (!settings.connection.base.models[collection]) throw new Error('Collection "' + collection + '" not found in Mongoose schema. Did you forget to load it?');
 
-			_.forEach(settings.connection.base.models[collection].schema.paths, function(path, id) {
-				if (id == 'id' || id == '_id') {
-					// Pass
-				} else if (path.instance && path.instance == 'ObjectID') {
-					settings.knownFK[collection][id] = FK_OBJECTID;
-				} else if (path.caster && path.caster.instance && path.caster.instance == 'ObjectID') { // Array of ObjectIDs
-					settings.knownFK[collection][id] = FK_OBJECTID_ARRAY;
-				}
-			});
+			// Merge extracted keys into knownFKs storage
+			settings.knownFK[collection] = extractFKs(settings.connection.base.models[collection].schema);
 
 			next();
 		}) // }}}
@@ -107,11 +101,11 @@ var scenario = function(model, options, callback) {
 			async()
 				.forEach(rows, function(next, row) { // Split all incomming items into defered tasks {{{
 					var rowFlattened = flatten(row);
-					var id = row[settings.keys.ref] ? 'ref-' + row[settings.keys.ref] : 'anon-' + settings.idVal++;
-					var dependents = getDependents(collection, rowFlattened);
+					var id = row[settings.keys.ref] ? row[settings.keys.ref] : 'anon-' + settings.idVal++;
+					var dependents = determineFKs(rowFlattened, settings.knownFK[collection]);
 
 					asyncCreator.defer(dependents, id, function(next) {
-						createRow(collection, rowFlattened, next);
+						createRow(collection, id, rowFlattened, next);
 					});
 
 					next();
@@ -131,45 +125,98 @@ var scenario = function(model, options, callback) {
 	return scenario;
 };
 
-/**
-* Examine a single creation row and return an array of all its dependencies
-* @param object row The row to examine
-* @return array Array of all references required to create the record
-*/
-function getDependents(collection, row) {
-	var dependents = [];
 
-	_.forEach(row, function(fieldValue, fieldID) {
-		if (row[fieldID] === undefined) return; // Found a FK but incomming row def has it as omitted - skip
-		switch (settings.knownFK[collection][fieldID]) {
+/**
+* Extract the FK relationship from a Mongo document
+* @param object schema The schema object to examine (usually connection.base.models[model].schema
+* @return object A dictionary of foreign keys for the schema
+*/
+function extractFKs(schema) {
+	var FKs = {};
+
+	_.forEach(schema.paths, function(path, id) {
+		if (id == 'id' || id == '_id') {
+			// Pass
+		} else if (path.instance && path.instance == 'ObjectID') {
+			FKs[id] = {type: FK_OBJECTID};
+		} else if (path.caster && path.caster.instance == 'ObjectID') { // Array of ObjectIDs
+			FKs[id] = {type: FK_OBJECTID_ARRAY};
+		} else if (path.schema) {
+			FKs[id] = {
+				type: FK_SUBDOC,
+				fks: extractFKs(path.schema),
+			};
+		}
+	});
+
+	return FKs;
+}
+
+/**
+* Inject foreign keys into a row before it gets passed to Mongo for insert
+* @param object row The row that will be inserted - values will be replaced inline
+* @param object fks The foreign keys for the given row (extacted via extractFKs)
+* @see extractFKs()
+*/
+function injectFKs(row, fks) {
+	_.forEach(fks, function(fk, id) {
+		if (row[id] === undefined) return; // Skip omitted FK refs
+
+		switch (fk.type) {
 			case FK_OBJECTID: // 1:1 relationship
-				dependents.push('ref-' + fieldValue);
+				if (!settings.refs[row[id]])
+					throw new Error('Attempting to use reference "' + row[id] + '" in field ' + id + ' before its been created!');
+				row[id] = settings.refs[row[id]];
 				break;
 			case FK_OBJECTID_ARRAY: // 1:M array based relationship
-				_.forEach(fieldValue, function(fieldValueArr) {
-					dependents.push('ref-' + fieldValueArr);
+				row[id] = _.map(row[id], function(fieldValueArr) { // Resolve each item in the array
+					if (!settings.refs[fieldValueArr])
+						throw new Error('Attempting to use reference "' + fieldValueArr + '" in 1:M field ' + id + ' before its been created!');
+					return settings.refs[fieldValueArr];
 				});
 				break;
-			default: // Probably not a reference
+			case FK_SUBDOC: // Mongo subdocument
+				_.forEach(row[id], function(subdocItem, subdocIndex) {
+					row[id][subdocItem]
+					injectFKs(subdocItem, fks[id].fks);
+				});
+				break;
+		}
+	});
+}
+
+/**
+* Get an array of required foreign keys values so we can calculate the dependency tree
+* @param object row The row that will be inserted
+* @param object fks The foreign keys for the given row (extacted via extractFKs)
+* @see extractFKs()
+* @return array An array of required references
+*/
+function determineFKs(row, fks) {
+	var refs = [];
+
+	_.forEach(fks, function(fk, id) {
+		if (row[id] === undefined) return; // Skip omitted FK refs
+
+		switch (fk.type) {
+			case FK_OBJECTID: // 1:1 relationship
+				refs.push(row[id]);
+				break;
+			case FK_OBJECTID_ARRAY: // 1:M array based relationship
+				_.forEach(row[id], function(v) {
+					refs.push(v);
+				});
+				break;
+			case FK_SUBDOC: // Mongo subdocument
+				_.forEach(row[id], function(v) {
+					determineFKs(v, fks[id].fks);
+				});
 				break;
 		}
 	});
 
-	var after = row[settings.keys.after];
-	if (after) { // Define custom dependencies (via '_after')
-		if (_.isString(after)) {
-			after = after.split(/\s*,\s*/);
-		} else if (_.isObject(after)) { // Not really supported behaviour but throw it in anyway
-			after = _.keys(after);
-		}
-
-		after.forEach(function(dep) {
-			dependents.push('ref-' + dep);
-		});
-	}
-
-	return dependents;
-};
+	return refs;
+}
 
 /**
 * Take a nested object and return a flattened hash in Mongoose path notation
@@ -198,39 +245,20 @@ function flatten(obj) {
 /**
 * Create a single row in a collection
 * @param string collection The collection where to create the row
+* @param string id The ID of the row (if any)
 * @param object row The row contents to create
 * @param function callback(err) Callback to chainable async function
 */
-function createRow(collection, row, callback) {
-	var createRow = {};
+function createRow(collection, id, row, callback) {
+	injectFKs(row, settings.knownFK[collection]);
 
-	_.forEach(row, function(fieldValue, fieldID) {
-		if (row[fieldID] === undefined) return; // Skip omitted FK refs
-		switch (settings.knownFK[collection][fieldID]) {
-			case FK_OBJECTID: // 1:1 relationship
-				if (!settings.refs[fieldValue])
-					return callback('Attempting to use reference "' + fieldValue + '" in field ' + collection + '.' + fieldID + ' before its been created!');
-				createRow[fieldID] = settings.refs[fieldValue];
-				break;
-			case FK_OBJECTID_ARRAY: // 1:M array based relationship
-				createRow[fieldID] = _.map(fieldValue, function(fieldValueArr) { // Resolve each item in the array
-					if (!settings.refs[fieldValueArr])
-						return callback('Attempting to use reference "' + fieldValueArr + '" in 1:M field ' + fieldID + ' before its been created!');
-					return settings.refs[fieldValueArr];
-				});
-				break;
-			default: // Probably not a reference
-				createRow[fieldID] = fieldValue;
-		}
-	});
+	row = _.omit(row, settings.omitFields);
 
-	createRow = _.omit(createRow, settings.omitFields);
-
-	settings.connection.base.models[collection].create(createRow, function(err, newItem) {
+	settings.connection.base.models[collection].create(row, function(err, newItem) {
 		if (err) return callback(err);
 
-		if (row[settings.keys.ref]) { // This unit has its own reference - add it to the stack
-			settings.refs[row[settings.keys.ref]] = newItem._id;
+		if (id) { // This unit has its own reference - add it to the stack
+			settings.refs[id] = newItem._id.toString();
 		}
 
 		if (!settings.progress.created[collection])
@@ -238,14 +266,6 @@ function createRow(collection, row, callback) {
 		settings.progress.created[collection]++;
 		callback(null, newItem._id);
 	});
-};
-
-
-/**
-* Pre-cache all foreign key items in a model
-* @param string model The model to process
-*/
-var computeFKs = function(model) {
 };
 
 module.exports = scenario;
