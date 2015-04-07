@@ -123,7 +123,10 @@ var scenario = function(model, options, callback) {
 				.await()
 				.end(next);
 		}) // }}}
-		.end(callback);
+		.end(function(err) {
+			if (err) return callback(err);
+			callback(null, settings.progress);
+		});
 
 	return scenario;
 };
