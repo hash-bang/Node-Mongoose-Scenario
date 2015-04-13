@@ -76,7 +76,7 @@ var scenario = function(model, options, callback) {
 				.set('models', _.isArray(settings.nuke) ? settings.nuke : _.keys(settings.connection.base.models))
 				.forEach('models', function(next, model) {
 					if (!settings.connection.base.models[model])
-						return callback('Model "' + model + '" is present in the Scenario schema but no model can be found matching that name, did you forget to load it?');
+						return next('Model "' + model + '" is present in the Scenario schema but no model can be found matching that name, did you forget to load it?');
 					settings.connection.base.models[model].find({}).remove(function(err) {
 						if (err) next(err);
 						settings.progress.nuked.push(model);
