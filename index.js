@@ -90,7 +90,7 @@ var scenario = function(model, options, callback) {
 
 			settings.knownFK[collection] = {};
 
-			if (!settings.connection.base.models[collection]) throw new Error('Collection "' + collection + '" not found in Mongoose schema. Did you forget to load it?');
+			if (!settings.connection.base.models[collection]) throw new Error('Collection "' + collection + '" not found in Mongoose schema. Did you forget to load its model?');
 
 			// Merge extracted keys into knownFKs storage
 			settings.knownFK[collection] = extractFKs(settings.connection.base.models[collection].schema);
@@ -209,7 +209,9 @@ function determineFKs(row, fks) {
 				break;
 			case FK_SUBDOC: // Mongo subdocument
 				_.forEach(row[id], function(v) {
-					determineFKs(v, fks[id].fks);
+					determineFKs(v, fks[id].fks).forEach(function(dep) {
+						refs.push(dep);
+					});
 				});
 				break;
 		}
