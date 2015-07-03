@@ -40,7 +40,7 @@ var settings = {
 
 /**
 * Create a scenario
-* A scenario must be complete - i.e. have no danling references for it to suceed
+* A scenario must be complete - i.e. have no dangling references for it to suceed
 * @param object model The scenario to create - expected format is a hash of collection names each containing a collection of records (e.g. `{users: [{name: 'user1'}, {name: 'user2'}] }`)
 * @param object settings Optional Settings array to import
 * @param callback function(err, data) Optional callback fired when scenario finishes creating records
@@ -248,7 +248,7 @@ function flatten(obj) {
 * Create a single row in a collection
 * @param string collection The collection where to create the row
 * @param string id The ID of the row (if any)
-* @param object row The row contents to create
+* @param object row The (flattened) row contents to create
 * @param function callback(err) Callback to chainable async function
 */
 function createRow(collection, id, row, callback) {
