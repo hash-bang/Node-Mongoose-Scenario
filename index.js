@@ -355,7 +355,7 @@ var scenarioExport = function(options, finish) {
 				.forEach('contents', function(next, row) {
 					var rowOutput = {_id: row._id};
 
-					if (row.__v != 0) rowOuput.__v = row.__v; // Only bother to export __v if its not zero
+					if (row.__v != 0) rowOutput.__v = row.__v; // Only bother to export __v if its not zero
 
 					_.forEach(row.toObject(), function(val, key) {
 						if (key == '_id' || key == '__v') return; // Skip meta fields
