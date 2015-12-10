@@ -4,7 +4,7 @@ var db = require('./db');
 
 describe('scenario - nested', function(){
 	before(function(done) {
-		scenario({
+		scenario.import({
 			widgets: [
 				{
 					_ref: 'widget-foo',

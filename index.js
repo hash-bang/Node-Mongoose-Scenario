@@ -39,26 +39,25 @@ var settings = {
 };
 
 /**
-* Create a scenario
+* Import a scenario file into a Mongo database
 * A scenario must be complete - i.e. have no dangling references for it to suceed
 * @param object model The scenario to create - expected format is a hash of collection names each containing a collection of records (e.g. `{users: [{name: 'user1'}, {name: 'user2'}] }`)
 * @param object settings Optional Settings array to import
-* @param callback function(err, data) Optional callback fired when scenario finishes creating records
+* @param finish function(err, data) Optional callback fired when scenario finishes creating records
 */
-var scenario = function(model, options, callback) {
+var scenarioImport = function(model, options, finish) {
 	var asyncCreator = async(); // Task runner that actually creates all the Mongo records
 
 	async()
 		.then(function(next) { // Coherce args into scenario(<model>, [options], [callback]) {{{
 			if (!model) throw new Error('No arguments passed to scenario()');
 			if (_.isFunction(options)) { // Form: (model, callback)
-				callback = options;
+				finish = options;
 			} else if (options) { // Form: model(model, options)
 				_.merge(settings, options);
 			}
-			if (!callback) callback = function() {};
+			if (!finish) finish = function() {};
 			next();
-			
 		}) // }}}
 		.then(function(next) { // Sanity checks {{{
 			if (!settings.connection) throw new Error('Invalid connection to Mongoose');
@@ -118,11 +117,11 @@ var scenario = function(model, options, callback) {
 				.end(next);
 		}) // }}}
 		.end(function(err) {
-			if (err) return callback(err);
-			callback(null, settings.progress);
+			if (err) return finish(err);
+			finish(null, settings.progress);
 		});
 
-	return scenario;
+	return scenarioImport;
 };
 
 
@@ -256,8 +255,28 @@ function createRow(collection, id, row, callback) {
 
 	row = _.omit(row, settings.omitFields);
 
+	if (row['speakerQueues.motion']) {
+		row['speakerQueues'] = {
+			motion: row['speakerQueues.motion'],
+		};
+		delete row['speakerQueues.motion'];
+		delete row['speakerQueues.general'];
+	}
+
 	settings.connection.base.models[collection].create(row, function(err, newItem) {
 		if (err) return callback(err);
+
+		if (collection == 'committees') {
+			console.log('BUILD', row);
+			console.log('BUILT', newItem.speakerQueue);
+			console.log('INJECT!');
+			var amended = checkMerge(row, newItem);
+			if (amended) {
+				console.log('DID WORK');
+				console.log('REWROTE TO', newItem);
+				newItem.save();
+			}
+		}
 
 		if (id) { // This unit has its own reference - add it to the stack
 			settings.refs[id] = newItem._id.toString();
@@ -270,4 +289,98 @@ function createRow(collection, id, row, callback) {
 	});
 };
 
-module.exports = scenario;
+function checkMerge(original, built) {
+	var amended = false;
+
+	_.forEach(original, function(v, k) {
+		var pointer = built;
+		k.split('.').forEach(function(pathBit, pathBitIndex) {
+			if (!pointer[pathBit]) { // Mongo has dropped the field entirely
+				console.log('PATH MISSING', pathBit, k.split('.').slice(0, pathBitIndex + 1).join('!'));
+				if (_.isObject(v)) {
+					pointer[pathBit] = v;
+					console.log('CREATE', pathBit, v);
+					if (pathBit == 'speakerQueues') {
+						console.log('INJECT INTO SQ');
+						pointer[pathBit] = {motion: [ {'title': 'POINTER TEST' } ] };
+						console.log(pointer);
+					}
+				} else if (_.isArray(v)) {
+					pointer[pathBit] = [];
+					v.forEach(function(item) { pointer[pathBit].push(item) });
+				} else {
+					pointer[pathBit] = v;
+				}
+				amended = true;
+			} else if (_.isArray(v) && pointer[pathBit].length != v.length) { // Its an array and Mongo has truncated it
+				console.log('ARRAY LEN MISMATCH', k);
+				pointer[pathBit] = v;
+			} else { // Field is ok
+				pointer = pointer[pathBit];
+			}
+		});
+	});
+
+	return amended;
+};
+
+
+var scenarioExport = function(options, finish) {
+	var output = {};
+
+	async()
+		.then(function(next) { // Coherce args into scenario([options], [callback]) {{{
+			if (!options) throw new Error('No arguments passed to scenario()');
+			if (_.isFunction(options)) { // Form: (callback)
+				finish = options;
+			} else if (options) { // Form: model(model, options)
+				_.merge(settings, options);
+			}
+			if (!finish) finish = function() {};
+			next();
+		}) // }}}
+		.then(function(next) { // Sanity checks {{{
+			if (!settings.connection) throw new Error('Invalid connection to Mongoose');
+			next();
+		}) // }}}
+		.then('models', function(next) {
+			next(null, _.keys(settings.connection.base.models));
+		})
+		.forEach('models', function(nextModel, model) {
+			output[model] = [];
+			async()
+				.then('contents', function(next) {
+					settings.connection.base.models[model].find(next);
+				})
+				.forEach('contents', function(next, row) {
+					var rowOutput = {_id: row._id};
+
+					if (row.__v != 0) rowOuput.__v = row.__v; // Only bother to export __v if its not zero
+
+					_.forEach(row.toObject(), function(val, key) {
+						if (key == '_id' || key == '__v') return; // Skip meta fields
+						rowOutput[key] = row[key];
+					});
+
+					output[model].push(rowOutput);
+					next();
+				})
+				.end(nextModel);
+		})
+		.end(function(err) {
+			if (err) return finish(err);
+			finish(null, output);
+		});
+
+	return scenarioExport;
+};
+
+var scenarioSet = function(options) {
+	_.merge(settings, options);
+};
+
+module.exports = {
+	import: scenarioImport,
+	export: scenarioExport,
+	set: scenarioSet,
+};

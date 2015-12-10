@@ -16,11 +16,9 @@ Scenario can be used a variety of ways but the below is the most typical example
 
 ```javascript
 var mongoose = require('mongoose');
-var scenario = require('mongoose-scenario')({
-	connection: db
-});
+var scenario = require('mongoose-scenario');
 
-scenario({
+scenario.import({
 	users: [
 		{
 			name: 'John User',
@@ -50,6 +48,8 @@ scenario({
 			content: 'This is the baz widget'
 		},
 	]
+}, {
+	connection: db
 });
 ```
 
@@ -89,7 +89,7 @@ var scenario = require('mongoose-scenario')({}, { // NOTE: pass a blank scenario
 	/* Options */
 });
 
-scenario({
+scenario.import({
 	collectionFoo: [],
 	collectionBar: []
 }, function(err, data) {
@@ -111,6 +111,25 @@ scenario({
 | reset                               | _boolean_      | true           | Whether Scenario should disguard references between runs. Set to false to keep previously created row references |
 
 
+Exporting
+=========
+Scenario also includes an experimental method to output database contents into a JSON stream using the `.export()` method.
+
+
+```javascript
+var mongoose = require('mongoose');
+var scenario = require('mongoose-scenario');
+
+scenario.export({
+	connection: db
+}, function(err, json) {
+	// Do something with `json`
+});
+```
+
+
+
+
 Examples
 ========
 
@@ -121,11 +140,9 @@ Similar to the single model example above, you can also populate multiple models
 
 ```javascript
 var mongoose = require('mongoose');
-var scenario = require('mongoose-scenario')({
-	connection: db
-});
+var scenario = require('mongoose-scenario');
 
-scenario({
+scenario.import({
 	users: [
 		{
 			name: 'John User',
@@ -150,6 +167,8 @@ scenario({
 			content: 'This is the baz widget'
 		},
 	]
+}, {
+	connection: db
 });
 ```
 
@@ -166,11 +185,9 @@ In the below example a users and widgets model are created where a user can have
 
 ```javascript
 var mongoose = require('mongoose');
-var scenario = require('mongoose-scenario')({
-	connection: db
-});
+var scenario = require('mongoose-scenario');
 
-scenario({
+scenario.import({
 	users: [
 		{
 			name: 'John User',
@@ -200,6 +217,8 @@ scenario({
 			content: 'This is the baz widget'
 		},
 	]
+}, {
+	connection: db
 });
 ```
 
@@ -225,7 +244,7 @@ var scenario = require("./index.js")({}, {
 tape('User setup', function(assert) {
 	assert.plan(1);
 
-	scenario({
+	scenario.import({
 		users: [
 			{
 				name: 'Wendy User',

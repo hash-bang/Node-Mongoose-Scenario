@@ -4,7 +4,7 @@ var db = require('./db');
 
 describe('scenario - simple', function(){
 	before(function(done) {
-		scenario({
+		scenario.import({
 			users: [
 				{
 					name: 'Wendy User',

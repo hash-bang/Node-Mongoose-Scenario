@@ -4,7 +4,7 @@ var db = require('./db');
 
 describe('scenario - sub-documents', function(){
 	before(function(done) {
-		scenario({
+		scenario.import({
 			users: [
 				{
 					name: 'Joe Random User',
