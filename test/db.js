@@ -4,10 +4,13 @@ mongoose.connect('mongodb://localhost/mongoose-scenario');
 mongoose.connection.on('error', console.error.bind(console, 'DB connection error:'));
 // }}}
 
+// Project {{{
 var projectSchema = new mongoose.Schema({
 	name: String,
-	description: String
+	description: String,
 });
+var Project = mongoose.model('projects', projectSchema);
+// }}}
 
 // User {{{
 var userSchema = new mongoose.Schema({
@@ -23,7 +26,7 @@ var userSchema = new mongoose.Schema({
 		}
 	],
 	testSet: {type: String},
-	projects: [projectSchema]
+	projects: [projectSchema],
 });
 var User = mongoose.model('users', userSchema);
 // }}}
@@ -53,6 +56,7 @@ var groupSchema = new mongoose.Schema({
 		name: String,
 		ribbonColor: String,
 		project: mongoose.Schema.ObjectId,
+		project: {type: mongoose.Schema.ObjectId, ref: 'projects'},
 	}],
 });
 var Group = mongoose.model('groups', groupSchema);

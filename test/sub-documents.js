@@ -23,21 +23,21 @@ describe('scenario - sub-documents', function(){
 						},
 						{
 							number: 15,
-							item: 'widget-whollop'
+							item: 'widget-whollop',
 						}
 					],
-					projects: [
-						{
-							_ref: 'potato_gun',
-							name: 'Potato Gun',
-							description: 'Shoots potatos using pneumatic magic'
-						},
-						{
-							_ref: 'mini_volcano',
-							name: 'Mini Volcano',
-							description: 'Spews lava using baking soda and vinegar'
-						}
-					]
+				},
+			],
+			projects: [
+				{
+					_ref: 'potato_gun',
+					name: 'Potato Gun',
+					description: 'Shoots potatos using pneumatic magic',
+				},
+				{
+					_ref: 'mini_volcano',
+					name: 'Mini Volcano',
+					description: 'Spews lava using baking soda and vinegar',
 				},
 			],
 			widgets: [
@@ -68,12 +68,12 @@ describe('scenario - sub-documents', function(){
 						{
 							name: 'Best in Show',
 							ribbonColor: 'orange',
-							project: 'potato_gun'
+							project: 'potato_gun',
 						},
 						{
 							name: 'First Place',
 							ribbonColor: 'blue',
-							project: 'mini_volcano'
+							project: 'mini_volcano',
 						}
 					]
 				}
