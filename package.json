@@ -24,8 +24,9 @@
   },
   "license": "MIT",
   "dependencies": {
+    "async-chainable": "~1.7.11",
     "lodash": "~3.8.0",
-    "async-chainable": "~1.7.11"
+    "traverse": "^0.6.6"
   },
   "devDependencies": {
     "chai": "~2.3.0",

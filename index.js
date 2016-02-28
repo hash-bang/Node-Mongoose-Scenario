@@ -1,5 +1,6 @@
 var _ = require('lodash');
 var async = require('async-chainable');
+var traverse = require('traverse');
 
 // Constants {{{
 var FK_OBJECTID = 1; // 1:1 objectID mapping
@@ -253,8 +254,24 @@ function flatten(obj) {
 function createRow(collection, id, row, callback) {
 	injectFKs(row, settings.knownFK[collection]);
 
+  // build up list of all sub-document _ref's that we need to find in the newly saved document
+  // this is to ensure we capture _id from inside nested array documents that do not exist at root level
+	var refsMeta = [];
+	traverse(row).forEach(function (value) {
+		var path;
+		if ('_ref' === this.key) {
+			path = this.path.concat();
+			path[path.length - 1] = '_id';
+			refsMeta.push({
+				ref: value,
+				path: path
+			});
+		}
+	});
+
 	row = _.omit(row, settings.omitFields);
 
+  // NOTE: MJM asks what does this do? looks like some project specific thing
 	if (row['speakerQueues.motion']) {
 		row['speakerQueues'] = {
 			motion: row['speakerQueues.motion'],
@@ -262,19 +279,15 @@ function createRow(collection, id, row, callback) {
 		delete row['speakerQueues.motion'];
 		delete row['speakerQueues.general'];
 	}
-
 	settings.connection.base.models[collection].create(row, function(err, newItem) {
 		if (err) return callback(err);
 
-		if (collection == 'committees') {
-			console.log('BUILD', row);
-			console.log('BUILT', newItem.speakerQueue);
-			console.log('INJECT!');
-			var amended = checkMerge(row, newItem);
-			if (amended) {
-				console.log('DID WORK');
-				console.log('REWROTE TO', newItem);
-				newItem.save();
+    // NOTE: MJM deleted if (collection == 'committees') block (left in by accident?)
+
+		var newItemAsObject = newItem.toObject();
+		for(var i = 0; i < refsMeta.length; i++) {
+			if (traverse(newItemAsObject).has(refsMeta[i].path)) {
+				settings.refs[refsMeta[i].ref] = traverse(newItemAsObject).get(refsMeta[i].path).toString();
 			}
 		}
 
