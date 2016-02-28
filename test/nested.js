@@ -42,7 +42,7 @@ describe('scenario - nested', function(){
 		});
 	});
 
-	it('create the widgets collection', function() {
+	it('create the widgets collection', function(done) {
 		db.widget
 			.find({testSet: 'nested'})
 			.sort('name')
@@ -56,10 +56,11 @@ describe('scenario - nested', function(){
 
 				expect(data[1]).to.have.property('name', 'Widget foo');
 				expect(data[1]).to.have.property('content', 'This is the foo widget');
+				done();
 			});
 	});
 
-	it('create the group', function() {
+	it('create the group', function(done) {
 		db.group
 			.find({testSet: 'nested'})
 			.populate('preferences.defaults.items')
@@ -74,13 +75,13 @@ describe('scenario - nested', function(){
 
 				expect(group.preferences.defaults.items).to.have.length(2);
 
-				
-				var items = data[0].preferences.defaults.items.sort(function(a, b) { if (a < b) { return -1 } else if (a > b) { return 1 } else { return } });
-				expect(items[0]).to.have.property('name', 'Widget bar');
-				expect(items[0]).to.have.property('content', 'This is the bar widget');
+				expect(data[0].preferences.defaults.items[0]).to.have.property('name', 'Widget foo');
+				expect(data[0].preferences.defaults.items[0]).to.have.property('content', 'This is the foo widget');
 
-				expect(items[1]).to.have.property('name', 'Widget foo');
-				expect(items[1]).to.have.property('content', 'This is the foo widget');
+				expect(data[0].preferences.defaults.items[1]).to.have.property('name', 'Widget bar');
+				expect(data[0].preferences.defaults.items[1]).to.have.property('content', 'This is the bar widget');
+
+				done();
 			});
 	});
 });

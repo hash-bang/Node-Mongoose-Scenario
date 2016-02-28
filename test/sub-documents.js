@@ -23,9 +23,21 @@ describe('scenario - sub-documents', function(){
 						},
 						{
 							number: 15,
-							item: 'widget-whollop',
-						},
+							item: 'widget-whollop'
+						}
 					],
+					projects: [
+						{
+							_ref: 'potato_gun',
+							name: 'Potato Gun',
+							description: 'Shoots potatos using pneumatic magic'
+						},
+						{
+							_ref: 'mini_volcano',
+							name: 'Mini Volcano',
+							description: 'Spews lava using baking soda and vinegar'
+						}
+					]
 				},
 			],
 			widgets: [
@@ -47,6 +59,24 @@ describe('scenario - sub-documents', function(){
 					content: 'This is the whollop widget',
 					testSet: 'sub-documents',
 				}
+			],
+			groups: [
+				{
+					name: 'Students',
+					testSet: 'sub-documents',
+					projectAwards: [
+						{
+							name: 'Best in Show',
+							ribbonColor: 'orange',
+							project: 'potato_gun'
+						},
+						{
+							name: 'First Place',
+							ribbonColor: 'blue',
+							project: 'mini_volcano'
+						}
+					]
+				}
 			]
 		}, {
 			connection: db.connection,
@@ -57,7 +87,7 @@ describe('scenario - sub-documents', function(){
 		});
 	});
 
-	it('create the users collection', function() {
+	it('create the users collection', function(done) {
 		db.user
 			.find({testSet: 'sub-documents'})
 			.populate('items')
@@ -79,10 +109,11 @@ describe('scenario - sub-documents', function(){
 				expect(user.items).to.have.length(1);
 				expect(user.items[0]).to.have.property('name', 'Widget bang');
 				expect(user.items[0]).to.have.property('content', 'This is the bang widget');
+				done();
 			});
 	});
 
-	it('create the widgets collection', function() {
+	it('create the widgets collection', function(done) {
 		db.widget
 			.find({testSet: 'sub-documents'})
 			.sort('name')
@@ -99,10 +130,11 @@ describe('scenario - sub-documents', function(){
 
 				expect(data[3]).to.have.property('name', 'Widget whollop');
 				expect(data[3]).to.have.property('content', 'This is the whollop widget');
+				done();
 			});
 	});
 
-	it('populates a sub-document', function() {
+	it('populates a sub-document', function(done) {
 		db.user
 			.find({testSet: 'sub-documents'})
 			.exec(function(err, data) {
@@ -121,6 +153,26 @@ describe('scenario - sub-documents', function(){
 
 				expect(user.mostPurchased[3]).to.have.property('number', 15);
 				expect(user.mostPurchased[3]).to.have.property('item');
+				done();
+			});
+	});
+
+	it('', function (done) {
+		db.group
+			.find({testSet: 'sub-documents'})
+			.populate('projectAwards projectAwards.project')
+			.exec(function (err, data) {
+				expect(err).to.be.not.ok;
+
+				expect(data).to.have.length(1);
+
+				var group = data[0].toObject();
+				expect(group.name).to.equal('Students');
+
+				expect(group.projectAwards[0]).to.have.property('project');
+				expect(group.projectAwards[0]).to.have.deep.property('project.name', 'Potato Gun');
+				expect(group.projectAwards[1]).to.have.deep.property('project.name', 'Mini Volcano');
+				done();
 			});
 	});
 });

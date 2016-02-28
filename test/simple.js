@@ -37,7 +37,7 @@ describe('scenario - simple', function(){
 		});
 	});
 
-	it('create the users collection', function() {
+	it('create the users collection', function(done) {
 		db.user
 			.find({testSet: 'simple'})
 			.populate('items')
@@ -60,11 +60,12 @@ describe('scenario - simple', function(){
 				expect(user.items).to.have.length(1);
 				expect(user.items[0]).to.have.property('name', 'Widget quz');
 				expect(user.items[0]).to.have.property('content', 'This is the quz widget');
+				done();
 			});
 	});
 
 
-	it('create the widgets collection', function() {
+	it('create the widgets collection', function(done) {
 		db.widget
 			.find({testSet: 'simple'})
 			.sort('name')
@@ -78,6 +79,7 @@ describe('scenario - simple', function(){
 
 				expect(data[1]).to.have.property('name', 'Widget quz');
 				expect(data[1]).to.have.property('content', 'This is the quz widget');
+				done();
 			});
 	});
 });
