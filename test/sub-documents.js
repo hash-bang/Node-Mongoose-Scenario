@@ -157,7 +157,7 @@ describe('scenario - sub-documents', function(){
 			});
 	});
 
-	it('', function (done) {
+	it('populates sub document inside array referencing sub document in external array', function (done) {
 		db.group
 			.find({testSet: 'sub-documents'})
 			.populate('projectAwards projectAwards.project')
