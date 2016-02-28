@@ -128,8 +128,8 @@ describe('scenario - sub-documents', function(){
 				expect(data[1]).to.have.property('name', 'Widget crash');
 				expect(data[1]).to.have.property('content', 'This is the crash widget');
 
-				expect(data[3]).to.have.property('name', 'Widget whollop');
-				expect(data[3]).to.have.property('content', 'This is the whollop widget');
+				expect(data[2]).to.have.property('name', 'Widget whollop');
+				expect(data[2]).to.have.property('content', 'This is the whollop widget');
 				done();
 			});
 	});
@@ -151,8 +151,8 @@ describe('scenario - sub-documents', function(){
 				expect(user.mostPurchased[1]).to.have.property('number', 10);
 				expect(user.mostPurchased[1]).to.have.property('item');
 
-				expect(user.mostPurchased[3]).to.have.property('number', 15);
-				expect(user.mostPurchased[3]).to.have.property('item');
+				expect(user.mostPurchased[2]).to.have.property('number', 15);
+				expect(user.mostPurchased[2]).to.have.property('item');
 				done();
 			});
 	});
