@@ -26,7 +26,7 @@ var userSchema = new mongoose.Schema({
 		}
 	],
 	testSet: {type: String},
-	projects: [projectSchema],
+	projects: [{type: mongoose.Schema.ObjectId, ref: 'projects'}],
 });
 var User = mongoose.model('users', userSchema);
 // }}}

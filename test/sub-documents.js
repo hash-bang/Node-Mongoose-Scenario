@@ -26,6 +26,7 @@ describe('scenario - sub-documents', function(){
 							item: 'widget-whollop',
 						}
 					],
+					projects: ['potato_gun', 'mini_volcano'],
 				},
 			],
 			projects: [
