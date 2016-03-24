@@ -36,7 +36,17 @@ var settings = {
 	// Check whether all dependencies are met
 	checkDependencies : true,
 
-	omitFields: ['_ref', '_after'] // Fields to omit from creation process
+	omitFields: ['_ref', '_after'], // Fields to omit from creation process
+
+	getModels: function() {
+		return _.keys(settings.connection.base.models);
+	},
+	getCollection: function(collection) {
+		return settings.connection.base.models[collection];
+	},
+	getCollectionSchema: function(collection) {
+		return settings.connection.base.models[collection].schema;
+	},
 };
 
 /**
@@ -74,11 +84,11 @@ var scenarioImport = function(model, options, finish) {
 		.then(function(next) { // Optionally Nuke existing models {{{
 			if (!settings.nuke) return next();
 			async()
-				.set('models', _.isArray(settings.nuke) ? settings.nuke : _.keys(settings.connection.base.models))
+				.set('models', _.isArray(settings.nuke) ? settings.nuke : settings.getModels())
 				.forEach('models', function(next, model) {
-					if (!settings.connection.base.models[model])
-						return next('Model "' + model + '" is present in the Scenario schema but no model can be found matching that name, did you forget to load it?');
-					settings.connection.base.models[model].remove({}, function(err) {
+					var collection = settings.getCollection(model);
+					if (!collection) return next('Model "' + model + '" is present in the Scenario schema but no model can be found matching that name, did you forget to load it?');
+					collection.remove({}, function(err) {
 						if (err) next(err);
 						settings.progress.nuked.push(model);
 						next();
@@ -91,10 +101,11 @@ var scenarioImport = function(model, options, finish) {
 
 			settings.knownFK[collection] = {};
 
-			if (!settings.connection.base.models[collection]) throw new Error('Collection "' + collection + '" not found in Mongoose schema. Did you forget to load its model?');
+			var collectionSchema = settings.getCollectionSchema(collection);
+			if (!collectionSchema) throw new Error('Collection "' + collection + '" not found in Mongoose schema. Did you forget to load its model?');
 
 			// Merge extracted keys into knownFKs storage
-			settings.knownFK[collection] = extractFKs(settings.connection.base.models[collection].schema);
+			settings.knownFK[collection] = extractFKs(collectionSchema);
 
 			next();
 		}) // }}}
@@ -129,7 +140,7 @@ var scenarioImport = function(model, options, finish) {
 
 /**
 * Extract the FK relationship from a Mongo document
-* @param object schema The schema object to examine (usually connection.base.models[model].schema
+* @param object schema The schema object to examine (usually connection.base.models[model].schema)
 * @return object A dictionary of foreign keys for the schema
 */
 function extractFKs(schema) {
@@ -272,7 +283,7 @@ function createRow(collection, id, row, callback) {
 
 	row = _.omit(row, settings.omitFields);
 
-	settings.connection.base.models[collection].create(row, function(err, newItem) {
+	settings.getCollection(collection).create(row, function(err, newItem) {
 		if (err) return callback(err);
 
 		var newItemAsObject = newItem.toObject();
@@ -342,13 +353,13 @@ var scenarioExport = function(options, finish) {
 			next();
 		}) // }}}
 		.then('models', function(next) {
-			next(null, _.keys(settings.connection.base.models));
+			next(null, settings.getModels());
 		})
 		.forEach('models', function(nextModel, model) {
 			output[model] = [];
 			async()
 				.then('contents', function(next) {
-					settings.connection.base.models[model].find(next);
+					settings.getModels().find(next);
 				})
 				.forEach('contents', function(next, row) {
 					var rowOutput = {_id: row._id};
