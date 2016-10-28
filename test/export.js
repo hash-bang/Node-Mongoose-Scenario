@@ -140,5 +140,6 @@ describe('scenario - export', function() {
 	});
 });
 
-describe('scenario - reimport', function() {
+describe.skip('scenario - reimport', function() {
+	// FIXME: Stub
 });
