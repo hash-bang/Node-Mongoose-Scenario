@@ -345,7 +345,6 @@ var scenarioExport = function(options, finish) {
 			} else if (options) { // Form: model(model, options)
 				_.merge(settings, options);
 			}
-			if (!finish) finish = function() {};
 			next();
 		}) // }}}
 		.then(function(next) { // Sanity checks {{{
@@ -359,7 +358,7 @@ var scenarioExport = function(options, finish) {
 			output[model] = [];
 			async()
 				.then('contents', function(next) {
-					settings.getModels().find(next);
+					settings.getCollection(model).find(next);
 				})
 				.forEach('contents', function(next, row) {
 					var rowOutput = {_id: row._id};
@@ -377,6 +376,8 @@ var scenarioExport = function(options, finish) {
 				.end(nextModel);
 		})
 		.end(function(err) {
+			if (!finish) finish = function() {};
+
 			if (err) return finish(err);
 			finish(null, output);
 		});
