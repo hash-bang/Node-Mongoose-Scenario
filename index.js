@@ -54,9 +54,9 @@ var settings = {
 /**
 * Import a scenario file into a Mongo database
 * A scenario must be complete - i.e. have no dangling references for it to suceed
-* @param object model The scenario to create - expected format is a hash of collection names each containing a collection of records (e.g. `{users: [{name: 'user1'}, {name: 'user2'}] }`)
-* @param object settings Optional Settings array to import
-* @param finish function(err, data) Optional callback fired when scenario finishes creating records
+* @param {Object} model The scenario to create - expected format is a hash of collection names each containing a collection of records (e.g. `{users: [{name: 'user1'}, {name: 'user2'}] }`)
+* @param {Object} settings Optional Settings array to import
+* @param {function} finish(err, data) Optional callback fired when scenario finishes creating records
 */
 var scenarioImport = function(model, options, finish) {
 	var asyncCreator = async() // Task runner that actually creates all the Mongo records
@@ -205,8 +205,8 @@ var scenarioImport = function(model, options, finish) {
 
 /**
 * Extract the FK relationship from a Mongo document
-* @param object schema The schema object to examine (usually connection.base.models[model].schema)
-* @return object A dictionary of foreign keys for the schema
+* @param {Object} schema The schema object to examine (usually connection.base.models[model].schema)
+* @return {Object} A dictionary of foreign keys for the schema
 */
 function extractFKs(schema) {
 	var FKs = {};
@@ -231,8 +231,8 @@ function extractFKs(schema) {
 
 /**
 * Inject foreign keys into a row before it gets passed to Mongo for insert
-* @param object row The row that will be inserted - values will be replaced inline
-* @param object fks The foreign keys for the given row (extacted via extractFKs)
+* @param {Object} row The row that will be inserted - values will be replaced inline
+* @param {Object} fks The foreign keys for the given row (extacted via extractFKs)
 * @see extractFKs()
 */
 function injectFKs(row, fks) {
@@ -264,10 +264,10 @@ function injectFKs(row, fks) {
 
 /**
 * Get an array of required foreign keys values so we can calculate the dependency tree
-* @param object row The row that will be inserted
-* @param object fks The foreign keys for the given row (extacted via extractFKs)
+* @param {Object} row The row that will be inserted
+* @param {Object} fks The foreign keys for the given row (extacted via extractFKs)
 * @see extractFKs()
-* @return array An array of required references
+* @return {array} An array of required references
 */
 function determineFKs(row, fks) {
 	var refs = [];
@@ -300,8 +300,8 @@ function determineFKs(row, fks) {
 /**
 * Take a nested object and return a flattened hash in Mongoose path notation
 * e.g. {foo: {bar: 'baz'}} // Becomes {foo.bar: 'baz'}
-* @param object obj The object to flatten
-* @return object A flattened version of the object given
+* @param {Object} obj The object to flatten
+* @return {Object} A flattened version of the object given
 */
 function flatten(obj) {
 	var flattenWorker = function(row, namespace, result) {
@@ -322,11 +322,18 @@ function flatten(obj) {
 };
 
 /**
+* Take a flattened object and return a nested object
+* @param {Object} obj The flattened object
+* @return {Object} The unflattened object
+*/
+
+
+/**
 * Create a single row in a collection
-* @param string collection The collection where to create the row
-* @param string id The ID of the row (if any)
-* @param object row The (flattened) row contents to create
-* @param function callback(err) Callback to chainable async function
+* @param {string} collection The collection where to create the row
+* @param {string} id The ID of the row (if any)
+* @param {Object} row The (flattened) row contents to create
+* @param {function} callback(err) Callback to chainable async function
 */
 function createRow(collection, id, row, callback) {
 	injectFKs(row, settings.knownFK[collection]);
