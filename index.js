@@ -15,6 +15,8 @@ var settings = {
 
 	called: 0, // How many times scenario has been called (if zero `nuke` gets fired)
 
+	timeout: 2000, // How long between successful creation operations should Scenario wait until it assumes the problem is unsolvable (in milliseconds)
+
 	progress: { // Output data array (passed to callback on finish)
 		created: {}, // Number of records created for each collection
 		nuked: [], // Tables nuked during call
@@ -58,8 +60,8 @@ var settings = {
 */
 var scenarioImport = function(model, options, finish) {
 	var asyncCreator = async() // Task runner that actually creates all the Mongo records
-		.timeout(2000)
-		.timeout(function() {
+		// Deal with timeout errors (usually unsolvable circular references) {{{
+		.timeout(settings.timeout || 2000, function() {
 			var taskIDs = {};
 			var remaining = this._struct
 				// Prepare a lookup table of tasks IDs that have already finished {{{
