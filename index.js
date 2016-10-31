@@ -62,21 +62,21 @@ var scenarioImport = function(model, options, finish) {
 		.timeout(function() {
 			var taskIDs = {};
 			var remaining = this._struct
-				// Prepare a lookup table of tasks to IDs {{{
+				// Prepare a lookup table of tasks IDs that have already finished {{{
 				.map(function(task) {
-					taskIDs[_.keys(task.payload)[0]] = task;
+					if (task.completed) taskIDs[_(task.payload).keys().first()] = true;
 					return task;
 				})
 				// }}}
 				// Remove non defered objects + completed tasks {{{
 				.filter(function(task) {
-					return (task.type == 'deferObject' && !task.computed);
+					return (task.type == 'deferObject' && !task.completed);
 				})
 				// }}}
 				// Remove any task that has resolved prereqs {{{
 				.filter(function(task) {
 					if (!task.prereq.length) return true; // Has no prereqs anyway
-					return task.prereq
+					return ! task.prereq
 						.every(function(prereq) {
 							return (!! taskIDs[prereq]);
 						});
@@ -106,6 +106,11 @@ var scenarioImport = function(model, options, finish) {
 				unresolved: remaining.map(function(task) {
 					return _(task.payload).keys().first();
 				}),
+				processed: this._struct
+					.filter(function(task) {
+						return (task.type == 'deferObject' && task.completed);
+					})
+					.length,
 			});
 		});
 

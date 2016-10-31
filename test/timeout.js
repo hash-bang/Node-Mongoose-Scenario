@@ -10,6 +10,7 @@ describe('scenario - timeouts', function() {
 		scenario.import({
 			users: [
 				{
+					_ref: 'users-wendy',
 					name: 'Wendy User',
 					role: 'user',
 					favourite: 'widget-quz',
@@ -39,11 +40,13 @@ describe('scenario - timeouts', function() {
 			expect(err).to.be.a.string;
 			expect(err).to.match(/^Unresolvable circular reference/);
 			expect(err).to.match(/Remaining refs/);
-			expect(err).to.match(/widget-quz/);
-			expect(err).to.match(/widget-qux/);
+			expect(err).to.match(/users-wendy/);
+
 			expect(data).to.be.an.object;
 			expect(data).to.have.property('unresolved');
-			expect(data.unresolved).to.be.deep.equal(['widget-quz', 'widget-qux']);
+			expect(data.unresolved).to.be.deep.equal(['users-wendy']);
+			expect(data).to.have.property('processed', 2);
+
 			done();
 		});
 	});
