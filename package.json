@@ -1,6 +1,6 @@
 {
   "name": "mongoose-scenario",
-  "version": "2.0.3",
+  "version": "2.1.0",
   "description": "Write scenario files which quickly allow you to populate Mongo / Mongoose contents",
   "main": "index.js",
   "scripts": {
@@ -24,7 +24,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "async-chainable": "^2.2.2",
+    "async-chainable": "^2.2.3",
     "lodash": "^4.16.4",
     "traverse": "^0.6.6"
   },

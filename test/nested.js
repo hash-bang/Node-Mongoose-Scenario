@@ -2,7 +2,8 @@ var expect = require('chai').expect;
 var scenario = require('../index');
 var db = require('./db');
 
-describe('scenario - nested', function(){
+describe('scenario - nested', function() {
+
 	before(function(done) {
 		scenario.import({
 			widgets: [
@@ -84,4 +85,5 @@ describe('scenario - nested', function(){
 				done();
 			});
 	});
+
 });

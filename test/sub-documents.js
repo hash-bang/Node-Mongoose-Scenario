@@ -2,7 +2,8 @@ var expect = require('chai').expect;
 var scenario = require('../index');
 var db = require('./db');
 
-describe('scenario - sub-documents', function(){
+describe('scenario - sub-documents', function() {
+
 	before(function(done) {
 		scenario.import({
 			users: [
@@ -158,7 +159,7 @@ describe('scenario - sub-documents', function(){
 			});
 	});
 
-	it('populates sub document inside array referencing sub document in external array', function (done) {
+	it('populates sub document inside array referencing sub document in external array', function(done) {
 		db.group
 			.find({testSet: 'sub-documents'})
 			.populate('projectAwards projectAwards.project')
@@ -176,4 +177,5 @@ describe('scenario - sub-documents', function(){
 				done();
 			});
 	});
+
 });

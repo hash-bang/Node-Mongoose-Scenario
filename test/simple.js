@@ -2,7 +2,8 @@ var expect = require('chai').expect;
 var scenario = require('../index');
 var db = require('./db');
 
-describe('scenario - simple', function(){
+describe('scenario - simple', function() {
+
 	before(function(done) {
 		scenario.import({
 			users: [
@@ -82,4 +83,5 @@ describe('scenario - simple', function(){
 				done();
 			});
 	});
+
 });

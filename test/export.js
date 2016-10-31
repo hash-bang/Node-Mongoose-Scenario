@@ -17,6 +17,7 @@ describe('scenario - export setup', function() {
 });
 
 describe('scenario - export', function() {
+
 	before(function(done) {
 		async()
 			.then('imported', function(next) {
@@ -138,6 +139,7 @@ describe('scenario - export', function() {
 		expect(exported).to.have.property('groups');
 		expect(exported.groups).to.have.length(1);
 	});
+
 });
 
 describe.skip('scenario - reimport', function() {

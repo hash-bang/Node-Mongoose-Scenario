@@ -57,7 +57,57 @@ var settings = {
 * @param finish function(err, data) Optional callback fired when scenario finishes creating records
 */
 var scenarioImport = function(model, options, finish) {
-	var asyncCreator = async(); // Task runner that actually creates all the Mongo records
+	var asyncCreator = async() // Task runner that actually creates all the Mongo records
+		.timeout(2000)
+		.timeout(function() {
+			var taskIDs = {};
+			var remaining = this._struct
+				// Prepare a lookup table of tasks to IDs {{{
+				.map(function(task) {
+					taskIDs[_.keys(task.payload)[0]] = task;
+					return task;
+				})
+				// }}}
+				// Remove non defered objects + completed tasks {{{
+				.filter(function(task) {
+					return (task.type == 'deferObject' && !task.computed);
+				})
+				// }}}
+				// Remove any task that has resolved prereqs {{{
+				.filter(function(task) {
+					if (!task.prereq.length) return true; // Has no prereqs anyway
+					return task.prereq
+						.every(function(prereq) {
+							return (!! taskIDs[prereq]);
+						});
+				})
+				// }}}
+				// Remove any task that nothing else depends on {{{
+				.filter(function(task) {
+					return true;
+				});
+				// }}}
+
+		finish(
+			'Unresolvable circular reference\n' +
+			'Remaining refs:\n' +
+			remaining
+				// Format the output {{{
+				.map(function(task) {
+					return (
+						' * ' +
+						(_(task.payload).keys().first() || '???') +
+						(task.prereq.length > 0 ? ' (Requires: ' + task.prereq.join(', ') + ')': '')
+					);
+				})
+				.join('\n')
+				// }}}
+			, {
+				unresolved: remaining.map(function(task) {
+					return _(task.payload).keys().first();
+				}),
+			});
+		});
 
 	async()
 		.then(function(next) { // Coherce args into scenario(<model>, [options], [callback]) {{{
