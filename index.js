@@ -99,7 +99,12 @@ var scenarioImport = function(model, options, finish) {
 					return (
 						' * ' +
 						(_(task.payload).keys().first() || '???') +
-						(task.prereq.length > 0 ? ' (Requires: ' + task.prereq.join(', ') + ')': '')
+						(task.prereq.length > 0 ? ' (Requires: ' + task.prereq
+							.filter(function(prereq) {
+								return (! taskIDs[prereq]); // Pre-req resolved ok?
+							})
+							.join(', ')
+						+ ')': '')
 					);
 				})
 				.join('\n')
@@ -115,6 +120,7 @@ var scenarioImport = function(model, options, finish) {
 					.length,
 			});
 		});
+		// }}}
 
 	async()
 		.then(function(next) { // Coherce args into scenario(<model>, [options], [callback]) {{{
@@ -186,10 +192,12 @@ var scenarioImport = function(model, options, finish) {
 				.await()
 				.end(next);
 		}) // }}}
+		// End {{{
 		.end(function(err) {
 			if (err) return finish(err);
 			finish(null, settings.progress);
 		});
+		// }}}
 
 	return scenarioImport;
 };
