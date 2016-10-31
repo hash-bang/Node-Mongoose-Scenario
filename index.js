@@ -178,9 +178,10 @@ var scenarioImport = function(model, options, finish) {
 					var rowFlattened = flatten(row);
 					var id = row[settings.keys.ref] ? row[settings.keys.ref] : 'anon-' + settings.idVal++;
 					var dependents = determineFKs(rowFlattened, settings.knownFK[collection]);
+					var rowUnflattened = unflatten(rowFlattened);
 
 					asyncCreator.defer(dependents, id, function(next) {
-						createRow(collection, id, rowFlattened, next);
+						createRow(collection, id, rowUnflattened, next);
 					});
 
 					next();
@@ -326,6 +327,13 @@ function flatten(obj) {
 * @param {Object} obj The flattened object
 * @return {Object} The unflattened object
 */
+function unflatten(obj) {
+	var out = {};
+	_.forEach(obj, function(v, k) {
+		_.set(out, k, v);
+	});
+	return out;
+};
 
 
 /**
@@ -464,5 +472,7 @@ var scenarioSet = function(options) {
 module.exports = {
 	import: scenarioImport,
 	export: scenarioExport,
+	flatten: flatten,
+	unflatten: unflatten,
 	set: scenarioSet,
 };
