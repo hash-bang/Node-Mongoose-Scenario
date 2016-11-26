@@ -238,24 +238,23 @@ function extractFKs(schema) {
 */
 function injectFKs(row, fks) {
 	_.forEach(fks, function(fk, id) {
-		if (row[id] === undefined) return; // Skip omitted FK refs
+		if (!_.has(row, id)) return; // Skip omitted FK refs
 
 		switch (fk.type) {
 			case FK_OBJECTID: // 1:1 relationship
 				if (!settings.refs[row[id]])
 					throw new Error('Attempting to use reference "' + row[id] + '" in field ' + id + ' before its been created!');
-				row[id] = settings.refs[row[id]];
+				_.set(row, id,  settings.refs[row[id]]);
 				break;
 			case FK_OBJECTID_ARRAY: // 1:M array based relationship
-				row[id] = _.map(row[id], function(fieldValueArr) { // Resolve each item in the array
+				_.set(row, id, _.map(row[id], function(fieldValueArr) { // Resolve each item in the array
 					if (!settings.refs[fieldValueArr])
 						throw new Error('Attempting to use reference "' + fieldValueArr + '" in 1:M field ' + id + ' before its been created!');
 					return settings.refs[fieldValueArr];
-				});
+				}));
 				break;
 			case FK_SUBDOC: // Mongo subdocument
-				_.forEach(row[id], function(subdocItem, subdocIndex) {
-					row[id][subdocItem]
+				_.forEach(_.get(row, id), function(subdocItem, subdocIndex) {
 					injectFKs(subdocItem, fks[id].fks);
 				});
 				break;
