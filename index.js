@@ -44,9 +44,11 @@ var settings = {
 		return _.keys(settings.connection.base.models);
 	},
 	getCollection: function(collection) {
+		if (!settings.connection.base.models[collection]) throw new Error('Unknown or undefined collection "' + collection + '"');
 		return settings.connection.base.models[collection];
 	},
 	getCollectionSchema: function(collection) {
+		if (!settings.connection.base.models[collection]) throw new Error('Unknown or undefined collection "' + collection + '"');
 		return settings.connection.base.models[collection].schema;
 	},
 };

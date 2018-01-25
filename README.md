@@ -104,7 +104,7 @@ scenario.import({
 
 | Option                              | Type           | Default        | Description                                                            |
 |-------------------------------------|----------------|----------------|------------------------------------------------------------------------|
-| connection                          | _object_       | _none_         | The Mongoose connection object to use                                  |
+| connection                          | _object_       | _none_         | The Mongoose connection object to use - normally this is `mongoose.connection` |
 | keys                                | _object_       | See code       | The names of the fields Mongoose with reference (see Meta fields section) |
 | nuke                                | _array_        | _none_         | Array of models to clear out (i.e. remove all records) before starting |
 | omitFields                          | _array_        | See code       | Array of fields which should be purged from the row data before its passed to Mongoose |
