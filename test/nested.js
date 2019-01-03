@@ -65,12 +65,13 @@ describe('scenario - nested', function() {
 		db.group
 			.find({testSet: 'nested'})
 			.populate('preferences.defaults.items')
+			.lean()
 			.exec(function(err, data) {
 				expect(err).to.be.not.ok;
 
 				expect(data).to.have.length(1);
 
-				var group = data[0].toObject();
+				var group = data[0];
 				expect(group).to.have.property('name', 'Group Foobar');
 				expect(group).to.have.property('preferences');
 

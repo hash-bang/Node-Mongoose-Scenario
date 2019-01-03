@@ -163,17 +163,18 @@ describe('scenario - sub-documents', function() {
 		db.group
 			.find({testSet: 'sub-documents'})
 			.populate('projectAwards projectAwards.project')
+			.lean()
 			.exec(function (err, data) {
 				expect(err).to.be.not.ok;
 
 				expect(data).to.have.length(1);
 
-				var group = data[0].toObject();
+				var group = data[0];
 				expect(group.name).to.equal('Students');
 
-				expect(group.projectAwards[0]).to.have.property('project');
-				expect(group.projectAwards[0]).to.have.deep.property('project.name', 'Potato Gun');
-				expect(group.projectAwards[1]).to.have.deep.property('project.name', 'Mini Volcano');
+				expect(group).to.have.nested.property('projectAwards.0.project');
+				expect(group).to.have.nested.deep.property('projectAwards.0.project.name', 'Potato Gun');
+				expect(group).to.have.nested.deep.property('projectAwards.1.project.name', 'Mini Volcano');
 				done();
 			});
 	});

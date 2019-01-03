@@ -117,8 +117,8 @@ describe('scenario - export', function() {
 			})
 			.end(function(err) {
 				expect(err).to.be.not.ok;
-				expect(this.imported).to.be.an.object;
-				expect(this.exported).to.be.an.object;
+				expect(this.imported).to.be.an('object');
+				expect(this.exported).to.be.an('object');
 				imported = this.imported;
 				exported = this.exported;
 				done();

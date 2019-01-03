@@ -24,13 +24,13 @@
   },
   "license": "MIT",
   "dependencies": {
-    "async-chainable": "^2.2.3",
-    "lodash": "^4.16.4",
+    "async-chainable": "^2.6.0",
+    "lodash": "^4.17.11",
     "traverse": "^0.6.6"
   },
   "devDependencies": {
-    "chai": "^3.5.0",
-    "mocha": "^3.1.2",
-    "mongoose": "~4.5.10"
+    "chai": "^4.2.0",
+    "mocha": "^5.2.0",
+    "mongoose": "~5.4.1"
   }
 }

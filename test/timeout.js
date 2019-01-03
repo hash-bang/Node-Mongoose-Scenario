@@ -37,12 +37,12 @@ describe('scenario - timeouts', function() {
 			nuke: true,
 		}, function(err, data) {
 			expect(err).to.be.ok;
-			expect(err).to.be.a.string;
+			expect(err).to.be.a('string');
 			expect(err).to.match(/^Unresolvable circular reference/);
 			expect(err).to.match(/Remaining refs/);
 			expect(err).to.match(/users-wendy/);
 
-			expect(data).to.be.an.object;
+			expect(data).to.be.an('object');
 			expect(data).to.have.property('unresolved');
 			expect(data.unresolved).to.be.deep.equal(['users-wendy']);
 			expect(data).to.have.property('processed', 2);
