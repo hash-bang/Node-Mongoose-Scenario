@@ -242,16 +242,17 @@ function injectFKs(row, fks) {
 	_.forEach(fks, function(fk, id) {
 		if (!_.has(row, id)) return; // Skip omitted FK refs
 
+		var lookupKey = _.get(row, id);
 		switch (fk.type) {
 			case FK_OBJECTID: // 1:1 relationship
-				if (!settings.refs[row[id]])
-					throw new Error('Attempting to use reference "' + row[id] + '" in field ' + id + ' before its been created!');
-				_.set(row, id,  settings.refs[row[id]]);
+				if (!settings.refs[lookupKey])
+					throw new Error('Attempting to inject non-existant reference "' + row[lookupKey] + '" (from lookup ref "' + lookupKey + '") into field path "' + id + '" before its been created!');
+				_.set(row, id,  settings.refs[lookupKey]);
 				break;
 			case FK_OBJECTID_ARRAY: // 1:M array based relationship
-				_.set(row, id, _.map(row[id], function(fieldValueArr) { // Resolve each item in the array
+				_.set(row, id, _.map(lookupKey, function(fieldValueArr) { // Resolve each item in the array
 					if (!settings.refs[fieldValueArr])
-						throw new Error('Attempting to use reference "' + fieldValueArr + '" in 1:M field ' + id + ' before its been created!');
+						throw new Error('Attempting to use reference "' + fieldValueArr + '" in 1:M field path "' + id + '" before its been created!');
 					return settings.refs[fieldValueArr];
 				}));
 				break;
